@@ -46,6 +46,8 @@ void Snake::initializeSnake()
 {
     // Instead of using a random initialization algorithm
     // We always put the snake at the center of the game mWindows
+    mSnake.clear(); 
+    
     int centerX = this->mGameBoardWidth / 2;
     int centerY = this->mGameBoardHeight / 2;
 
@@ -76,8 +78,8 @@ bool Snake::hitWall()
     int xhead = this-> mSnake[0].getX();
     int yhead = this-> mSnake[0].getY();
     
-    if (xhead < 0 || xhead >= this->mGameBoardWidth || 
-        yhead < 0 || yhead >= this->mGameBoardHeight){
+    if (xhead <= 0 || xhead >= this->mGameBoardWidth-1 || 
+        yhead <= 0 || yhead >= this->mGameBoardHeight-1){
         return true;
     }
     return false;
@@ -121,7 +123,7 @@ void Snake::senseFood(SnakeBody food)
     this->mFood = food;
 }
 
-std::vector<SnakeBody>& Snake::getSnake()
+const std::vector<SnakeBody>& Snake::getSnake()
 {
     return this->mSnake;
 }
@@ -166,6 +168,7 @@ bool Snake::changeDirection(Direction newDirection)
 
 SnakeBody Snake::createNewHead()
 {
+    if (mSnake.empty()) return SnakeBody(0, 0); // 判空保护
     int headX = this->mSnake[0].getX();
     int headY = this->mSnake[0].getY();
     
@@ -196,6 +199,7 @@ SnakeBody Snake::createNewHead()
  */
 bool Snake::moveFoward()
 {
+    if (mSnake.empty()) return false; // 判空保护
     SnakeBody newHead = this->createNewHead();
     this->mSnake.insert(this->mSnake.begin(), newHead);  // Add new head
 
@@ -227,4 +231,10 @@ bool Snake::checkCollision()
 int Snake::getLength()
 {
     return this->mSnake.size();
+}
+
+void Snake::setSpeedMultiplier(float multiplier) {
+    if (multiplier < 0.5f) multiplier = 0.5f;
+    if (multiplier > 3.0f) multiplier = 3.0f;
+    mSpeedMultiplier = multiplier;
 }

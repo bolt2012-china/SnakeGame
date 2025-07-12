@@ -11,6 +11,7 @@ enum class Direction
     Right = 3,
 };
 
+//Snake body segment
 class SnakeBody
 {
 public:
@@ -30,7 +31,7 @@ class Snake
 public:
     //Snake();
     Snake(int gameBoardWidth, int gameBoardHeight, int initialSnakeLength);
-    // Set random seed
+    // Set  seed
     void setRandomSeed();
     // Initialize snake
     void initializeSnake();
@@ -43,10 +44,15 @@ public:
     bool hitSelf();
     bool checkCollision();
     bool changeDirection(Direction newDirection);
-    std::vector<SnakeBody>& getSnake();
+    Direction getDirection() const { return mDirection; }
+    const std::vector<SnakeBody>& getSnake();
     int getLength();
     SnakeBody createNewHead();
     bool moveFoward();
+    void setSpeedMultiplier(float multiplier); // 新增速度控制方法
+    float getSpeedMultiplier() const { return mSpeedMultiplier; }
+    bool isAccelerating() const { return mSpeedMultiplier > 1.0f; }
+    void setAccelerationEffect(bool active) { /* 可添加粒子效果标记 */ }
 
 private:
     const int mGameBoardWidth;
@@ -57,6 +63,7 @@ private:
     Direction mDirection;
     SnakeBody mFood;
     std::vector<SnakeBody> mSnake;
+    float mSpeedMultiplier = 1.0f; // 速度乘数
 };
 
 #endif
