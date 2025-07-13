@@ -238,3 +238,26 @@ void Snake::setSpeedMultiplier(float multiplier) {
     if (multiplier > 3.0f) multiplier = 3.0f;
     mSpeedMultiplier = multiplier;
 }
+
+void Snake::decreaseHitPoints(int amount) {
+    mHitPoints -= amount;
+    if (mHitPoints < 0) mHitPoints = 0;
+    
+    // 生命值减少时的视觉反馈
+    if (mHitPoints > 0) {
+        // 闪烁效果（在渲染中实现）
+        mHitEffectTimer = 0.5f; // 0.5秒闪烁效果
+    }
+}
+
+void Snake::resetToInitial() {
+    initializeSnake();
+    mDirection = Direction::Up;
+    // 保留生命值，只重置位置
+}
+
+void Snake::shrink() {
+    if (mSnake.size() > 1) {
+        mSnake.pop_back(); // 移除尾部
+    }
+}

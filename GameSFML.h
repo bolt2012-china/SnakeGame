@@ -12,6 +12,7 @@ public:
     GameSFML(unsigned int columns, unsigned int rows, unsigned int cellSize);
     void run();
     bool hitBoundary();
+    bool hitObstacles();
 
 private:
     void processEvents();
@@ -21,17 +22,20 @@ private:
     void renderNewBoard();
     void renderSnake();
     void renderFood();
+    void renderObstacles();
     void renderUI();
     // Gameover页面
     void openGameOverDialog();
     void processDialogEvents();
     void restartGame();
+    void generateFood();
+    void generateObstacles(); // 生成障碍物
 
     //分数记录相关
     void updateHighScores(int score);   // 把本局成绩写入数组并落盘
     void loadHighScores();              // 启动时读取历史
     void saveHighScores();              // 数组变更时写文件
-   
+
 
     GameState mState = GameState::Playing;
     
@@ -77,7 +81,15 @@ private:
     sf::Text        mRestartTxt;
     sf::Text        mQuitTxt;
 
-    
+    // HP
+    sf::Text mHitPointsText;
+    float mHitEffectTimer = 0.0f;
+    float mInvincibleTimer = 0.0f;
+
+    bool visible = true;
+
+    std::vector<SnakeBody> mObstacles; // 障碍物数组
+    int mObstacleCount = 5; // 初始障碍物数量
 };
 
 #endif
