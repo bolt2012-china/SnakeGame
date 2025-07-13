@@ -98,39 +98,7 @@ GameSFML::GameSFML(unsigned int columns,
     mLeader3Text.setString("#3: " + std::to_string(mHighScores[2]));
 
     // 生成初始食物
-    std::srand(static_cast<unsigned>(time(nullptr)));
-    while (true) {
-        int fx = std::rand() % mColumns;
-        int fy = std::rand() % mRows;
-        // 检查是否在蛇体上
-        if (mSnake.isPartOfSnake(fx, fy)) continue;
-        // 检查是否在有效区域
-        bool valid = true;
-        if (currentType == mBorderType::Circle) {
-            float centerX = mColumns / 2.0f;
-            float centerY = mRows / 2.0f;
-            float radius = std::min(mColumns, mRows) / 2.0f;
-            float dx = fx + 0.5f - centerX;
-            float dy = fy + 0.5f - centerY;
-            if (std::sqrt(dx*dx + dy*dy) > radius) valid = false;
-        } else if (currentType == mBorderType::Triangle) {
-            sf::Vector2f A(0, mRows);
-            sf::Vector2f B(mColumns/2.0f, 0);
-            sf::Vector2f C(mColumns, mRows);
-            float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
-            float x = fx + 0.5f;
-            float y = fy + 0.5f;
-            float a = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / denom;
-            float b = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / denom;
-            float c = 1 - a - b;
-            if (!(a >= 0 && a <= 1 && b >= 0 && b <= 1 && c >= 0 && c <= 1)) valid = false;
-        }
-        if (valid) {
-            mFood = SnakeBody(fx, fy);
-            break;
-        }
-    }
-    mSnake.senseFood(mFood);
+    generatePortalFood();
     currentType = static_cast<mBorderType>(rand() % 2); // 游戏开始时随机地图类型
 }
 
@@ -196,12 +164,7 @@ void GameSFML::processEvents() {
                 case sf::Keyboard::Scancode::R:
                     mPoints = 0;
                     mSnake.initializeSnake();
-                    do {
-                        int fx = std::rand() % mColumns;
-                        int fy = std::rand() % mRows;
-                        mFood = SnakeBody(fx, fy);
-                    } while (mSnake.isPartOfSnake(mFood.getX(), mFood.getY()));
-                    mSnake.senseFood(mFood);
+                    generatePortalFood();
                     mDelay = 0.1f;
                     currentType = static_cast<mBorderType>(rand() % 2); // 重启时随机地图类型
                     break;
@@ -237,44 +200,20 @@ void GameSFML::processEvents() {
 
 
 void GameSFML::update() {
+    // Check if snake touched portal food first
+    if (mSnake.touchPortalFood()) {
+        mSnake.teleportSnake();
+        // Generate new portal food after teleportation
+        generatePortalFood();
+        return; // Skip normal movement processing this frame
+    }
+    
     if (mSnake.moveFoward()) {
         ++mPoints;
         mDifficulty = mPoints / 5;
         mDelay = 0.1f * std::pow(0.75f, static_cast<float>(mDifficulty));
-        // 生成初始食物
-        std::srand(static_cast<unsigned>(time(nullptr)));
-        while (true) {
-            int fx = std::rand() % mColumns;
-            int fy = std::rand() % mRows;
-            // 检查是否在蛇体上
-            if (mSnake.isPartOfSnake(fx, fy)) continue;
-            // 检查是否在有效区域
-            bool valid = true;
-            if (currentType == mBorderType::Circle) {
-                float centerX = mColumns / 2.0f;
-                float centerY = mRows / 2.0f;
-                float radius = std::min(mColumns, mRows) / 2.0f;
-                float dx = fx + 0.5f - centerX;
-                float dy = fy + 0.5f - centerY;
-                if (std::sqrt(dx*dx + dy*dy) > radius) valid = false;
-            } else if (currentType == mBorderType::Triangle) {
-                sf::Vector2f A(0, mRows);
-                sf::Vector2f B(mColumns/2.0f, 0);
-                sf::Vector2f C(mColumns, mRows);
-                float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
-                float x = fx + 0.5f;
-                float y = fy + 0.5f;
-                float a = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / denom;
-                float b = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / denom;
-                float c = 1 - a - b;
-                if (!(a >= 0 && a <= 1 && b >= 0 && b <= 1 && c >= 0 && c <= 1)) valid = false;
-            }
-            if (valid) {
-                mFood = SnakeBody(fx, fy);
-                mSnake.senseFood(mFood); // 更新蛇对食物的感知
-                break;
-            }
-        }
+        // Generate new food after eating regular food
+        generatePortalFood();
     }
     if (hitBoundary()) {      
         updateHighScores(mPoints); //更新得分记录
@@ -346,7 +285,7 @@ void GameSFML::renderNewBoard() {
 
 void GameSFML::renderSnake() {
     sf::RectangleShape block({ static_cast<float>(mCellSize - 1), static_cast<float>(mCellSize - 1) });
-    block.setFillColor(sf::Color::Green);
+    block.setFillColor(sf::Color(255, 200, 50));
     SnakeBody head = mSnake.getSnake().front();
     for (SnakeBody part : mSnake.getSnake()) {
         block.setPosition({ static_cast<float>(part.getX() * mCellSize),
@@ -354,9 +293,9 @@ void GameSFML::renderSnake() {
 
         if (part == head && mSnake.isAccelerating()) {
             // 如果是蛇头且正在加速，改变颜色
-            block.setFillColor(sf::Color(255, 200, 50)); // 金色
+            block.setFillColor(sf::Color::Red); 
         } else {
-            block.setFillColor(sf::Color::Green); // 恢复默认颜色
+            block.setFillColor(sf::Color(255, 200, 50)); // 恢复默认颜色
         }
         mWindow.draw(block);
     }
@@ -365,11 +304,21 @@ void GameSFML::renderSnake() {
 
 
 void GameSFML::renderFood() {
-    sf::RectangleShape block({ static_cast<float>(mCellSize - 1), static_cast<float>(mCellSize - 1) });
-    block.setFillColor(sf::Color::Red);
-    block.setPosition({ static_cast<float>(mFood.getX() * mCellSize),
-                        static_cast<float>(mFood.getY() * mCellSize) });
-    mWindow.draw(block);
+    // 渲染普通食物（红色）
+    sf::RectangleShape regularFood({static_cast<float>(mCellSize-1), 
+                                   static_cast<float>(mCellSize-1)});
+    regularFood.setFillColor(sf::Color::Red);
+    regularFood.setPosition({ static_cast<float>(mRegularFood.getX() * mCellSize),
+                        static_cast<float>(mRegularFood.getY() * mCellSize) });
+    mWindow.draw(regularFood);
+
+    // 渲染传送食物（蓝色）
+    sf::RectangleShape portalFood({static_cast<float>(mCellSize-1), 
+                                 static_cast<float>(mCellSize-1)});
+    portalFood.setFillColor(sf::Color::Blue);
+    portalFood.setPosition({ static_cast<float>(mPortalFood.getX() * mCellSize),
+                        static_cast<float>(mPortalFood.getY() * mCellSize) });
+    mWindow.draw(portalFood);
 }
 
 void GameSFML::renderUI() {
@@ -468,13 +417,7 @@ void GameSFML::restartGame()
     mDelay = 0.1f;
 
     mSnake.initializeSnake();
-
-    do {
-        int fx = std::rand() % mColumns;
-        int fy = std::rand() % mRows;
-        mFood = SnakeBody(fx, fy);
-    } while (mSnake.isPartOfSnake(mFood.getX(), mFood.getY()));
-    mSnake.senseFood(mFood);
+    generatePortalFood();
     currentType = static_cast<mBorderType>(rand() % 2); // 重启时随机地图类型
 }
 
@@ -553,4 +496,102 @@ bool GameSFML::hitBoundary()
         }
     }
     return false;
+}
+
+void GameSFML::runPortalMode()
+{
+    sf::Clock clock;
+    float acc = 0.f;
+    
+    // 在传送门模式中强制使用基础边界（难度0）
+    mDifficulty = 0;
+    
+    while (mWindow.isOpen()) {
+        processEvents();                    // 主窗口事件
+
+        if (mState == GameState::GameOver && mDialog.isOpen())
+            processDialogEvents();          // 处理对话框事件
+
+        float dt = clock.restart().asSeconds();
+        float effectiveDelay = mDelay / mSnake.getSpeedMultiplier();
+
+        if (mState == GameState::Playing) { // 只在 Playing 时更新蛇
+            acc += dt;
+            if (acc >= effectiveDelay) { 
+                updatePortalMode(); 
+                acc -= effectiveDelay; 
+            }
+        }
+
+        renderPortalMode();                 // 使用传送门模式专用渲染
+    }
+}
+
+void GameSFML::updatePortalMode() {
+    // Check if snake touched portal food first
+    if (mSnake.touchPortalFood()) {
+        mSnake.teleportSnake();
+        mPoints += 5; // Bonus points for using portal
+        // Generate new portal food after teleportation
+        generatePortalFood();
+        return; // Skip normal movement processing this frame
+    }
+    
+    if (mSnake.moveFoward()) {
+        ++mPoints;
+        // In portal mode, difficulty increases slower
+        mDifficulty = mPoints / 10; 
+        mDelay = 0.1f * std::pow(0.85f, static_cast<float>(mDifficulty));
+        // Generate new food after eating regular food
+        generatePortalFood();
+    }
+    
+    // Portal mode uses basic rectangular boundaries only
+    if (mSnake.checkCollision()) {      
+        updateHighScores(mPoints);
+        mState = GameState::GameOver;
+        openGameOverDialog();
+    }
+}
+
+void GameSFML::renderPortalMode() {
+    mWindow.clear(sf::Color::Black);
+    
+    // Always use basic rectangular board in portal mode
+    renderBoard(); // This renders the basic rectangular border
+    
+    renderFood();  // Renders both regular and portal food
+    renderSnake();
+    mWindow.draw(mSidebarBorder);
+    renderUI();
+    mWindow.display();
+}
+
+void GameSFML::generatePortalFood() {
+    // 生成普通食物（红色） - 简化版本用于基础游戏板
+    std::srand(static_cast<unsigned>(time(nullptr)));
+    while (true) {
+        int fx = std::rand() % mColumns;
+        int fy = std::rand() % mRows;
+        if (!mSnake.isPartOfSnake(fx, fy)) {
+            mRegularFood = SnakeBody(fx, fy);  // 普通食物
+            break;
+        }
+    }
+
+    // 生成传送食物（蓝色） - 简化版本用于基础游戏板
+    while (true) {
+        int fx = std::rand() % mColumns;
+        int fy = std::rand() % mRows;
+        // 确保不与蛇身和普通食物重叠
+        if (!mSnake.isPartOfSnake(fx, fy) && 
+           !(fx == mRegularFood.getX() && fy == mRegularFood.getY())) {
+            mPortalFood = SnakeBody(fx, fy);  // 传送食物
+            break;
+        }
+    }
+
+    // 蛇感知普通食物（传送食物需要特殊处理）
+    mSnake.senseFood(mRegularFood);
+    mSnake.sensePortalFood(mPortalFood);
 }

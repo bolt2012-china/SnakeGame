@@ -12,11 +12,15 @@ public:
     GameSFML(unsigned int columns, unsigned int rows, unsigned int cellSize);
     void run();
     bool hitBoundary();
+    void runPortalMode();  // TODO
+    void runScoreMode () {}  // TODO
 
 private:
     void processEvents();
     void update();
+    void updatePortalMode();
     void render();
+    void renderPortalMode();
     void renderBoard();
     void renderNewBoard();
     void renderSnake();
@@ -31,6 +35,8 @@ private:
     void updateHighScores(int score);   // 把本局成绩写入数组并落盘
     void loadHighScores();              // 启动时读取历史
     void saveHighScores();              // 数组变更时写文件
+
+    void generatePortalFood(); // 生成食物
    
 
     GameState mState = GameState::Playing;
@@ -48,7 +54,7 @@ private:
     unsigned int mRows;
     unsigned int mCellSize;
     Snake mSnake;
-    SnakeBody mFood;
+    // SnakeBody mFood;
     int mPoints = 0;
     int mDifficulty = 0;
     float mDelay = 0.1f;
@@ -77,7 +83,8 @@ private:
     sf::Text        mRestartTxt;
     sf::Text        mQuitTxt;
 
-    
+    SnakeBody mRegularFood;  // 普通食物（红色）
+    SnakeBody mPortalFood;   // 传送食物（蓝色）
 };
 
 #endif

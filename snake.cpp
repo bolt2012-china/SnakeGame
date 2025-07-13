@@ -123,6 +123,43 @@ void Snake::senseFood(SnakeBody food)
     this->mFood = food;
 }
 
+void Snake::sensePortalFood(SnakeBody portalFood)
+{
+    this->mPortalFood = portalFood;
+}
+
+bool Snake::touchPortalFood()
+{
+    SnakeBody newHead = this->createNewHead();
+    if (this->mPortalFood == newHead)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void Snake::teleportSnake()
+{
+    if (mSnake.empty()) return;
+    
+    // 找到一个安全的传送位置（不在蛇身上）
+    int attempts = 0;
+    int newX, newY;
+    do {
+        newX = std::rand() % mGameBoardWidth;
+        newY = std::rand() % mGameBoardHeight;
+        attempts++;
+    } while (isPartOfSnake(newX, newY) && attempts < 100);
+    
+    // 传送蛇头到新位置
+    if (attempts < 100) {
+        mSnake[0] = SnakeBody(newX, newY);
+    }
+}
+
 const std::vector<SnakeBody>& Snake::getSnake()
 {
     return this->mSnake;

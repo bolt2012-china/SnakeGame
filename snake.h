@@ -38,7 +38,10 @@ public:
     // Checking API for generating random food
     bool isPartOfSnake(int x, int y);
     void senseFood(SnakeBody food);
+    void sensePortalFood(SnakeBody portalFood);  // 感知传送食物
     bool touchFood();
+    bool touchPortalFood();                      // 检测是否碰到传送食物
+    void teleportSnake();                        // 传送蛇到随机位置
     // Check if the snake is dead
     bool hitWall();
     bool hitSelf();
@@ -62,6 +65,7 @@ private:
     const int mInitialSnakeLength;
     Direction mDirection;
     SnakeBody mFood;
+    SnakeBody mPortalFood;                       // 传送食物
     std::vector<SnakeBody> mSnake;
     float mSpeedMultiplier = 1.0f; // 速度乘数
 };
