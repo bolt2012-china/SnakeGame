@@ -115,31 +115,60 @@ void GameSFML::generateFood() {
     while (true) {
         int fx = std::rand() % mColumns;
         int fy = std::rand() % mRows;
+        
         // 检查是否在蛇体上
         if (mSnake.isPartOfSnake(fx, fy)) continue;
-        // 检查是否在有效区域
-        bool valid = true;
-        if (currentType == mBorderType::Circle) {
-            float centerX = mColumns / 2.0f;
-            float centerY = mRows / 2.0f;
-            float radius = std::min(mColumns, mRows) / 2.0f;
-            float dx = fx + 0.5f - centerX;
-            float dy = fy + 0.5f - centerY;
-            if (std::sqrt(dx*dx + dy*dy) > radius) valid = false;
-        } else if (currentType == mBorderType::Triangle) {
-            sf::Vector2f A(0, mRows);
-            sf::Vector2f B(mColumns/2.0f, 0);
-            sf::Vector2f C(mColumns, mRows);
-            float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
-            if (std::abs(denom) < 1e-6) { valid = false; } else {
-                float x = fx + 0.5f;
-                float y = fy + 0.5f;
-                float a = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / denom;
-                float b = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / denom;
-                float c = 1 - a - b;
-                if (!(a >= 0 && a <= 1 && b >= 0 && b <= 1 && c >= 0 && c <= 1)) valid = false;
+        
+        // 检查是否与障碍物重叠
+        bool onObstacle = false;
+        for (const auto& obs : mObstacles) {
+            if (obs.getX() == fx && obs.getY() == fy) {
+                onObstacle = true;
+                break;
             }
         }
+        if (onObstacle) continue;
+        
+        // 检查是否在有效区域内且不在边界上
+        bool valid = true;
+        
+        if (mDifficulty == 0) {
+            // 矩形边界：确保不在边界上
+            if (fx == 0 || fx == mColumns - 1 || fy == 0 || fy == mRows - 1) {
+                valid = false;
+            }
+        } else {
+            // 圆形和三角形边界检查
+            if (currentType == mBorderType::Circle) {
+                float centerX = mColumns / 2.0f;
+                float centerY = mRows / 2.0f;
+                float radius = std::min(mColumns, mRows) / 2.0f;
+                float dx = fx + 0.5f - centerX;
+                float dy = fy + 0.5f - centerY;
+                float distance = std::sqrt(dx*dx + dy*dy);
+                // 确保食物距离边界至少1个单位
+                if (distance >= radius - 1.0f) valid = false;
+            } else if (currentType == mBorderType::Triangle) {
+                sf::Vector2f A(0, mRows);
+                sf::Vector2f B(mColumns/2.0f, 0);
+                sf::Vector2f C(mColumns, mRows);
+                float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
+                if (std::abs(denom) < 1e-6) { 
+                    valid = false; 
+                } else {
+                    float x = fx + 0.5f;
+                    float y = fy + 0.5f;
+                    float a = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / denom;
+                    float b = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / denom;
+                    float c = 1 - a - b;
+                    // 确保点在三角形内部且距离边界有一定距离
+                    if (!(a >= 0.1 && a <= 0.9 && b >= 0.1 && b <= 0.9 && c >= 0.1 && c <= 0.9)) {
+                        valid = false;
+                    }
+                }
+            }
+        }
+        
         if (valid) {
             mFood = SnakeBody(fx, fy);
             break;
@@ -181,6 +210,39 @@ void GameSFML::generateObstacles() {
                 if (obs.getX() == ox && obs.getY() == oy) {
                     valid = false;
                     break;
+                }
+            }
+            
+            // 检查是否在有效的边界区域内（针对圆形和三角形地图）
+            if (mDifficulty > 0) {
+                if (currentType == mBorderType::Circle) {
+                    float centerX = mColumns / 2.0f;
+                    float centerY = mRows / 2.0f;
+                    float radius = std::min(mColumns, mRows) / 2.0f;
+                    float dx = ox + 0.5f - centerX;
+                    float dy = oy + 0.5f - centerY;
+                    if (std::sqrt(dx*dx + dy*dy) > radius) {
+                        valid = false;
+                        continue;
+                    }
+                } else if (currentType == mBorderType::Triangle) {
+                    sf::Vector2f A(0, mRows);
+                    sf::Vector2f B(mColumns/2.0f, 0);
+                    sf::Vector2f C(mColumns, mRows);
+                    float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
+                    if (std::abs(denom) < 1e-6) { 
+                        valid = false; 
+                        continue;
+                    }
+                    float x = ox + 0.5f;
+                    float y = oy + 0.5f;
+                    float a = ((B.y - C.y) * (x - C.x) + (C.x - B.x) * (y - C.y)) / denom;
+                    float b = ((C.y - A.y) * (x - C.x) + (A.x - C.x) * (y - C.y)) / denom;
+                    float c = 1 - a - b;
+                    if (!(a >= 0 && a <= 1 && b >= 0 && b <= 1 && c >= 0 && c <= 1)) {
+                        valid = false;
+                        continue;
+                    }
                 }
             }
         }
@@ -582,39 +644,41 @@ bool GameSFML::hitBoundary()
     // 检查蛇头是否碰到边界
     const auto& snakeVec = mSnake.getSnake();
     if (snakeVec.empty()) return false;
-    if (mDifficulty==0)
+    
+    SnakeBody head = snakeVec.front();
+    
+    if (mDifficulty == 0) {
+        // 矩形边界碰撞检测
         return mSnake.checkCollision();
-    else if (mDifficulty==1) {
-        // 新增边框碰撞检测
-        SnakeBody head = snakeVec.front();
-        float headX = head.getX()*mCellSize + mCellSize / 2.0f;
-        float headY = head.getY()*mCellSize + mCellSize / 2.0f;
+    } else {
+        // 高难度模式：圆形或三角形边界碰撞检测
+        float headX = head.getX() + 0.5f; // 使用网格坐标系
+        float headY = head.getY() + 0.5f;
         
         // 根据边框类型检测碰撞
         switch(currentType) {
             case mBorderType::Circle: {
                 // 圆形边框碰撞
-                float centerX = mColumns*mCellSize / 2.0f;
-                float centerY = mRows*mCellSize / 2.0f;
-                float radius = std::min(mColumns*mCellSize, mRows*mCellSize) / 2.0f;
+                float centerX = mColumns / 2.0f;
+                float centerY = mRows / 2.0f;
+                float radius = std::min(mColumns, mRows) / 2.0f;
                 float distance = std::sqrt(std::pow(headX - centerX, 2) + 
                                         std::pow(headY - centerY, 2));
-                if (distance >= radius) return true;
-                break;
+                return distance >= radius; // 超出半径即碰撞
             }
             case mBorderType::Triangle: {
-                // 三角形边框碰撞 
-                sf::Vector2f A = sf::Vector2f(mTriangleBorder.getPoint(0));
-                sf::Vector2f B = sf::Vector2f(mTriangleBorder.getPoint(1));
-                sf::Vector2f C = sf::Vector2f(mTriangleBorder.getPoint(2));
+                // 三角形边框碰撞
+                sf::Vector2f A(0, mRows);
+                sf::Vector2f B(mColumns/2.0f, 0);
+                sf::Vector2f C(mColumns, mRows);
 
                 // 计算重心坐标
                 float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
-                if (std::abs(denom) < 1e-6) return false; // 防止除零
+                if (std::abs(denom) < 1e-6) return true; // 退化情况视为碰撞
                 float a = ((B.y - C.y) * (headX - C.x) + (C.x - B.x) * (headY - C.y)) / denom;
                 float b = ((C.y - A.y) * (headX - C.x) + (A.x - C.x) * (headY - C.y)) / denom;
                 float c = 1 - a - b;
-                // 点在三角形内当且仅当所有重心坐标在[0,1]范围内
+                // 点在三角形外即碰撞
                 return !((a >= 0 && a <= 1) && (b >= 0 && b <= 1) && (c >= 0 && c <= 1));
             }
         }
