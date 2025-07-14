@@ -11,6 +11,38 @@
 #   define M_PI 3.14159265358979323846
 #endif
 
+namespace
+{
+    void makeButton(sf::RectangleShape& rect,
+                    sf::Text&            label,
+                    const sf::Font&      font,
+                    const std::string&   text,
+                    const sf::Vector2f&  pos,
+                    const sf::Vector2f&  size = {100.f, 40.f},
+                    const sf::Color&     fill = sf::Color(200, 200, 200))
+    {
+        // 1. 背景矩形
+        rect.setSize(size);
+        rect.setFillColor(fill);
+        rect.setPosition(pos);
+
+        // 2. 文本
+        label.setFont(font);
+        label.setString(text);
+        label.setCharacterSize(18);
+        label.setFillColor(sf::Color::Black);
+
+        // 3. 计算真正几何中心（兼容描边/下划线带来的偏移）
+        auto bounds = label.getLocalBounds();                       // FloatRect
+        const sf::Vector2f center = bounds.position + bounds.size * 0.5f;
+        label.setOrigin(center);                                    // ★ 新写法
+
+        // 4. 把文字放到按钮几何中心
+        label.setPosition(pos + size * 0.5f);
+    }
+}
+
+
 GameSFML::GameSFML(unsigned int columns,
                    unsigned int rows,
                    unsigned int cellSize)
@@ -36,7 +68,8 @@ GameSFML::GameSFML(unsigned int columns,
 , mLeader3Text(mFont)
 , mHitPointsText(mFont)  
 , mRestartTxt(mFont)   
-, mQuitTxt  (mFont)    
+, mQuitTxt  (mFont)
+, mHomeDTxt (mFont)    
 , mHighScores{0,0,0}
 , mBgSprite(mBgTexture) 
 , mHeadTexture{}
@@ -408,10 +441,16 @@ void GameSFML::update() {
     hitObstacles();
 }
 
+void GameSFML::drawBackground()
+{
+    //绘制背景图辅助函数
+    if (mBgTexture.getSize().x)   
+        mWindow.draw(mBgSprite);
+}
+
 void GameSFML::render() {
     mWindow.clear();                  
-    if (mBgTexture.getSize().x)        // 确认加载成功
-        mWindow.draw(mBgSprite);       // 先画背景
+    drawBackground();    
     if (mDifficulty == 0) {
         renderBoard(); 
     } else if (mDifficulty >= 1) {
@@ -706,34 +745,24 @@ void GameSFML::renderUI() {
 
 void GameSFML::openGameOverDialog()
 {
-    if (mDialog.isOpen()) return;           // 已打开就别重复建
+    if (mDialog.isOpen()) return;               // 已打开就别重复建
 
     mDialog.create(
-        sf::VideoMode({300u, 160u}),             
-        "Game Over",
-        sf::Style::Titlebar | sf::Style::Close);  
+        sf::VideoMode({300u, 160u}), "Game Over",
+        sf::Style::Titlebar | sf::Style::Close);
 
-    // 按钮外观
-    const sf::Vector2f btnSize{100.f, 40.f};
-    mRestartBtn.setSize(btnSize);
-    mRestartBtn.setFillColor(sf::Color(200,200,200));
-    mRestartBtn.setPosition({25.f, 90.f});
+    // 统一用小工具 makeButton 创建三颗按钮
+    const sf::Vector2f btnSize{80.f, 40.f};
+    const float topY   = 90.f;
+    const float startX = 10.f;      // 第一颗按钮左边缘
+    const float gap    = 100.f;     // 按钮间水平间距
 
-    mQuitBtn   .setSize(btnSize);
-    mQuitBtn   .setFillColor(sf::Color(200,200,200));
-    mQuitBtn   .setPosition({175.f, 90.f});
-
-    // 按钮文字
-    mRestartTxt.setString("Restart");
-    mRestartTxt.setCharacterSize(18);
-    mRestartTxt.setFillColor(sf::Color::Black);
-    mRestartTxt.setPosition(mRestartBtn.getPosition() + sf::Vector2f(15.f, 8.f));
-
-    mQuitTxt.setString("Quit");
-    mQuitTxt.setCharacterSize(18);
-    mQuitTxt.setFillColor(sf::Color::Black);
-    mQuitTxt.setPosition(mQuitBtn.getPosition() + sf::Vector2f(30.f, 8.f));
-
+    makeButton(mRestartBtn, mRestartTxt, mFont, "Restart",
+               {startX,              topY}, btnSize);
+    makeButton(mHomeDBtn,   mHomeDTxt,   mFont, "Home",
+               {startX + gap,        topY}, btnSize);
+    makeButton(mQuitBtn,    mQuitTxt,    mFont, "Quit",
+               {startX + gap * 2.f,  topY}, btnSize);
 }
 
 void GameSFML::processDialogEvents()
@@ -754,6 +783,11 @@ void GameSFML::processDialogEvents()
                 mState = GameState::Playing;
                 mDialog.close();
             }
+            else if (mHomeDBtn.getGlobalBounds().contains(pos)) {
+                mOutcome = AppState::StartMenu;
+                mWindow.close();
+                mDialog.close();
+            }
             else if (mQuitBtn.getGlobalBounds().contains(pos)) {
                 mWindow.close();
                 mDialog.close();
@@ -764,6 +798,7 @@ void GameSFML::processDialogEvents()
     // 绘制对话框
     mDialog.clear(sf::Color(50,50,50));
     mDialog.draw(mRestartBtn);  mDialog.draw(mQuitBtn);
+    mDialog.draw(mHomeDBtn);    mDialog.draw(mHomeDTxt); 
     mDialog.draw(mRestartTxt);  mDialog.draw(mQuitTxt);
     mDialog.display();
 }
@@ -921,8 +956,8 @@ void GameSFML::updatePortalMode() {
 }
 
 void GameSFML::renderPortalMode() {
-    mWindow.clear(sf::Color::Black);
-    
+    mWindow.clear();
+    drawBackground(); 
     // Always use basic rectangular board in portal mode
     renderBoard(); // This renders the basic rectangular border
     
@@ -1349,7 +1384,8 @@ void GameSFML::updateScoreMode() {
 }
 
 void GameSFML::renderScoreMode() {
-    mWindow.clear(sf::Color::Black);
+    mWindow.clear();
+    drawBackground(); 
     
     // 总是使用基础矩形边界在分数模式中
     renderBoard(); 

@@ -20,6 +20,7 @@ public:
     void runScoreMode();  // 分数模式
 
 private:
+    void drawBackground(); //绘制游戏窗口背景图
     void processEvents();
     void update();
     void updatePortalMode();
@@ -96,8 +97,10 @@ private:
     sf::RenderWindow mDialog;           // 默认构造即可
     sf::RectangleShape mRestartBtn;
     sf::RectangleShape mQuitBtn;
+    sf::RectangleShape mHomeDBtn;
     sf::Text        mRestartTxt;
     sf::Text        mQuitTxt;
+    sf::Text        mHomeDTxt;
 
     // HP
     sf::Text mHitPointsText;
