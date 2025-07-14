@@ -13,6 +13,7 @@ public:
     void run();
     bool hitBoundary();
     bool hitObstacles();
+    bool isSnakeInCenterArea(); // Helper function to check if snake is in center area
     void runPortalMode();  // TODO
     void runScoreMode();  // 分数模式
 
@@ -126,6 +127,7 @@ private:
 
     std::vector<SnakeBody> mObstacles; // 障碍物数组
     int mObstacleCount = 5; // 初始障碍物数量
+    bool mNewBoardActivated = false; // Flag to track if new board has been rendered
 };
 
 #endif

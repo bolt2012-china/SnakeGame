@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <cmath>
+#include <ctime>
 #include <fstream>     
 #include <algorithm>   
 
@@ -102,7 +103,18 @@ GameSFML::GameSFML(unsigned int columns,
     generateFood();
     // 生成初始障碍物
     generateObstacles();
+    
+    // 初始化三角形边框点，防止hitBoundary()中访问未初始化的点导致段错误
+    mTriangleBorder.setPointCount(3);
+    mTriangleBorder.setPoint(0, {0, static_cast<float>(mRows * mCellSize)});
+    mTriangleBorder.setPoint(1, {static_cast<float>(mColumns * mCellSize / 2), 0});
+    mTriangleBorder.setPoint(2, {static_cast<float>(mColumns * mCellSize), 
+                                static_cast<float>(mRows * mCellSize)});
+    
+    // 初始化随机数生成器
+    std::srand(static_cast<unsigned>(time(nullptr)));
     currentType = static_cast<mBorderType>(rand() % 2); // 游戏开始时随机地图类型
+    mNewBoardActivated = false; // Initialize the flag
 }
 
 void GameSFML::run()
@@ -185,6 +197,7 @@ void GameSFML::processEvents() {
                     generateObstacles();
                     mDelay = 0.1f;
                     currentType = static_cast<mBorderType>(rand() % 2); // 重启时随机地图类型
+                    mNewBoardActivated = false; // Reset the flag on restart
                     break;
                 // 退出
                 case sf::Keyboard::Scancode::Escape:
@@ -229,7 +242,23 @@ void GameSFML::update() {
             generateObstacles();
         }
     }
-    if (hitBoundary()) {      
+    // If difficulty is 1 and snake enters center area, activate new board permanently
+    if (mDifficulty >= 1 && !mNewBoardActivated && isSnakeInCenterArea()) {
+        mNewBoardActivated = true;
+    }
+    
+    // Check boundary collision based on board state
+    bool shouldCheckBoundary = false;
+    if (mDifficulty < 1) {
+        // Always check boundary for basic board (difficulty 0)
+        shouldCheckBoundary = true;
+    } else if (mNewBoardActivated) {
+        // Check new board boundary when new board is activated
+        shouldCheckBoundary = true;
+    }
+    // If difficulty >= 1 but new board not activated, don't check boundary
+    
+    if (shouldCheckBoundary && hitBoundary()) {      
         mSnake.decreaseHitPoints(); // 减少生命值
         if (mSnake.getHitPoints() <= 0) {
             updateHighScores(mPoints); //更新得分记录
@@ -247,8 +276,13 @@ void GameSFML::render() {
     mWindow.clear(sf::Color::Black);
     if (mDifficulty == 0) {
         renderBoard(); 
-    } else {
-        renderNewBoard(); 
+    } else if (mDifficulty >= 1) {
+        // Render new board if it has been activated, otherwise continue showing basic board
+        if (mNewBoardActivated) {
+            renderNewBoard(); 
+        } else {
+            renderBoard(); // Continue showing basic board until snake enters center
+        }
     }
     renderObstacles();
     renderFood();
@@ -283,12 +317,7 @@ void GameSFML::renderNewBoard() {
     this->mCircleBorder.setOutlineThickness(2.0f);
     this->mCircleBorder.setOutlineColor(sf::Color::White);
     
-    // 三角形边框
-    this->mTriangleBorder.setPointCount(3);
-    this->mTriangleBorder.setPoint(0, {0, static_cast<float>(mRows * mCellSize)});
-    this->mTriangleBorder.setPoint(1, {static_cast<float>(mColumns * mCellSize / 2), 0});
-    this->mTriangleBorder.setPoint(2, {static_cast<float>(mColumns * mCellSize), 
-                                static_cast<float>(mRows * mCellSize)});
+    // 三角形边框（点已在构造函数中初始化）
     this->mTriangleBorder.setFillColor(sf::Color::Transparent);
     this->mTriangleBorder.setOutlineThickness(2.0f);
     this->mTriangleBorder.setOutlineColor(sf::Color::White);
@@ -544,6 +573,7 @@ void GameSFML::restartGame()
     generateFood();
     generateObstacles();
     currentType = static_cast<mBorderType>(rand() % 2); // 重启时随机地图类型
+    mNewBoardActivated = false; // Reset the flag on restart
 }
 
 
@@ -584,9 +614,9 @@ bool GameSFML::hitBoundary()
     // 检查蛇头是否碰到边界
     const auto& snakeVec = mSnake.getSnake();
     if (snakeVec.empty()) return false;
-    if (mDifficulty==0)
+    if (mDifficulty == 0)
         return mSnake.checkCollision();
-    else if (mDifficulty==1) {
+    else if (mDifficulty >= 1) {
         // 新增边框碰撞检测
         SnakeBody head = snakeVec.front();
         float headX = head.getX()*mCellSize + mCellSize / 2.0f;
@@ -631,6 +661,9 @@ void GameSFML::runPortalMode()
     
     // 在传送门模式中强制使用基础边界（难度0）
     mDifficulty = 0;
+    
+    // 生成初始的传送门食物
+    generatePortalFood();
     
     while (mWindow.isOpen()) {
         processEvents();                    // 主窗口事件
@@ -1053,13 +1086,20 @@ void GameSFML::updateScoreMode() {
     }
     
     // 检查是否吃到彩色食物（在移动之前检查）
+    bool ateFood = false;
     for (auto it = mScoreFoods.begin(); it != mScoreFoods.end(); ++it) {
         if (newHead.getX() == it->position.getX() && newHead.getY() == it->position.getY()) {
             mPoints += it->value;  // 根据食物颜色加分
+            
+            // 在移除食物之前，先让蛇感知到食物位置
+            mSnake.senseFood(it->position);
+            
             mScoreFoods.erase(it); // 移除被吃掉的食物
             
-            // 移动蛇并增长
-            mSnake.moveFoward();
+            // 现在移动蛇，由于已经感知到食物，它会增长
+            mSnake.moveFoward(); // 移动蛇并增长
+            
+            ateFood = true;
             
             // 如果食物数量太少，重新生成
             if (mScoreFoods.size() < 10) {
@@ -1079,12 +1119,16 @@ void GameSFML::updateScoreMode() {
             mDifficulty = mPoints / 20; // 分数模式难度增加更慢
             mDelay = 0.1f * std::pow(0.85f, static_cast<float>(mDifficulty));
             
-            return; // 吃到食物后直接返回
+            break; // 吃到食物后跳出循环
         }
     }
     
-    // 如果没有吃到食物，正常移动
-    mSnake.moveFoward();
+    // 如果没有吃到食物，正常移动（不增长）
+    if (!ateFood) {
+        // 清除感知到的食物，确保moveFoward()不会让蛇增长
+        mSnake.senseFood(SnakeBody(-1, -1)); // 设置为无效位置
+        mSnake.moveFoward(); // 现在只会移动，不会增长
+    }
     
     // 碰撞检测 - 分数模式使用基础矩形边界
     if (mSnake.checkCollision()) {      
@@ -1138,14 +1182,14 @@ void GameSFML::generateScoreTunnels() {
             attempts++;
             
             // 随机生成入口位置（避免边界）
-            int entranceX = 2 + std::rand() % (mColumns - 4);
-            int entranceY = 2 + std::rand() % (mRows - 4);
+            int entranceX = 3 + std::rand() % (mColumns - 6);
+            int entranceY = 3 + std::rand() % (mRows - 6);
             
-            // 随机生成出口位置，确保与入口有一定距离
+            // 随机生成出口位置，确保与入口有一定距离，且远离边界
             int exitX, exitY;
             do {
-                exitX = 2 + std::rand() % (mColumns - 4);
-                exitY = 2 + std::rand() % (mRows - 4);
+                exitX = 4 + std::rand() % (mColumns - 8);  // 确保出口距离边界至少4个单位
+                exitY = 4 + std::rand() % (mRows - 8);     // 确保出口距离边界至少4个单位
             } while (std::abs(exitX - entranceX) < 3 || std::abs(exitY - entranceY) < 3);
             
             tunnel.entrance = SnakeBody(entranceX, entranceY);
@@ -1220,11 +1264,12 @@ void GameSFML::renderScoreTunnels() {
         // 计算连接线的长度和角度
         float deltaX = exitX - entranceX;
         float deltaY = exitY - entranceY;
-        float length = std::sqrt(deltaX * deltaX + deltaY * deltaY);
+        float Length = std::sqrt(deltaX * deltaX + deltaY * deltaY);
         float angle = std::atan2(deltaY, deltaX) * 180.0f / M_PI;
         
+        
         // 创建连接线（隧道主体）
-        sf::RectangleShape tunnelLine({length, static_cast<float>(mCellSize / 4)});
+        sf::RectangleShape tunnelLine({Length, static_cast<float>(mCellSize / 4)});
         tunnelLine.setFillColor(sf::Color(tunnel.color.r, tunnel.color.g, tunnel.color.b, 128)); // 半透明
         tunnelLine.setPosition({entranceX, entranceY - mCellSize / 8.0f});
         tunnelLine.setRotation(sf::degrees(angle));
@@ -1262,4 +1307,41 @@ void GameSFML::renderScoreTunnels() {
         mWindow.draw(exit);
         mWindow.draw(exitMarker);
     }
+}
+
+bool GameSFML::isSnakeInCenterArea() {
+    const auto& snakeVec = mSnake.getSnake();
+    if (snakeVec.empty()) return false;
+    
+    SnakeBody head = snakeVec.front();
+    float headX = head.getX() + 0.5f;
+    float headY = head.getY() + 0.5f;
+    
+    // Define center area based on the current border type
+    switch(currentType) {
+        case mBorderType::Circle: {
+            float centerX = mColumns / 2.0f;
+            float centerY = mRows / 2.0f;
+            float radius = std::min(mColumns, mRows) / 2.0f;
+            float dx = headX - centerX;
+            float dy = headY - centerY;
+            float distance = std::sqrt(dx*dx + dy*dy);
+            // Snake is in center area if within 70% of the radius
+            return distance <= (radius * 0.7f);
+        }
+        case mBorderType::Triangle: {
+            sf::Vector2f A(0, mRows);
+            sf::Vector2f B(mColumns/2.0f, 0);
+            sf::Vector2f C(mColumns, mRows);
+            float denom = (B.y - C.y) * (A.x - C.x) + (C.x - B.x) * (A.y - C.y);
+            if (std::abs(denom) < 1e-6) return false;
+            
+            float a = ((B.y - C.y) * (headX - C.x) + (C.x - B.x) * (headY - C.y)) / denom;
+            float b = ((C.y - A.y) * (headX - C.x) + (A.x - C.x) * (headY - C.y)) / denom;
+            float c = 1 - a - b;
+            // Snake is in center area if within 70% margin from edges
+            return (a >= 0.15 && a <= 0.85 && b >= 0.15 && b <= 0.85 && c >= 0.15 && c <= 0.85);
+        }
+    }
+    return false;
 }
