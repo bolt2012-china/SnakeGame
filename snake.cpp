@@ -123,6 +123,43 @@ void Snake::senseFood(SnakeBody food)
     this->mFood = food;
 }
 
+void Snake::sensePortalFood(SnakeBody portalFood)
+{
+    this->mPortalFood = portalFood;
+}
+
+bool Snake::touchPortalFood()
+{
+    SnakeBody newHead = this->createNewHead();
+    if (this->mPortalFood == newHead)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void Snake::teleportSnake()
+{
+    if (mSnake.empty()) return;
+    
+    // 找到一个安全的传送位置（不在蛇身上）
+    int attempts = 0;
+    int newX, newY;
+    do {
+        newX = std::rand() % mGameBoardWidth;
+        newY = std::rand() % mGameBoardHeight;
+        attempts++;
+    } while (isPartOfSnake(newX, newY) && attempts < 100);
+    
+    // 传送蛇头到新位置
+    if (attempts < 100) {
+        mSnake[0] = SnakeBody(newX, newY);
+    }
+}
+
 const std::vector<SnakeBody>& Snake::getSnake()
 {
     return this->mSnake;
@@ -237,4 +274,38 @@ void Snake::setSpeedMultiplier(float multiplier) {
     if (multiplier < 0.5f) multiplier = 0.5f;
     if (multiplier > 3.0f) multiplier = 3.0f;
     mSpeedMultiplier = multiplier;
+}
+
+void Snake::decreaseHitPoints(int amount) {
+    mHitPoints -= amount;
+    if (mHitPoints < 0) mHitPoints = 0;
+    
+    // 生命值减少时的视觉反馈
+    if (mHitPoints > 0) {
+        // 闪烁效果（在渲染中实现）
+        mHitEffectTimer = 0.5f; // 0.5秒闪烁效果
+    }
+}
+
+void Snake::resetToInitial() {
+    initializeSnake();
+    mDirection = Direction::Up;
+    // 保留生命值，只重置位置
+}
+
+void Snake::shrink() {
+    if (mSnake.size() > 1) {
+        mSnake.pop_back(); // 移除尾部
+    }
+}
+
+void Snake::teleportToPosition(int x, int y)
+{
+    if (mSnake.empty()) return;
+    
+    // 确保目标位置在游戏区域内
+    if (x >= 0 && x < mGameBoardWidth && y >= 0 && y < mGameBoardHeight) {
+        // 传送蛇头到指定位置
+        mSnake[0] = SnakeBody(x, y);
+    }
 }
