@@ -107,15 +107,7 @@ bool Snake::hitSelf()
 
 bool Snake::touchFood()
 {
-    SnakeBody newHead = this->createNewHead();
-    if (this->mFood == newHead)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return !mSnake.empty() && (mSnake[0] == mFood);
 }
 
 void Snake::senseFood(SnakeBody food)
@@ -130,15 +122,12 @@ void Snake::sensePortalFood(SnakeBody portalFood)
 
 bool Snake::touchPortalFood()
 {
-    SnakeBody newHead = this->createNewHead();
-    if (this->mPortalFood == newHead)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return !mSnake.empty() && (mSnake[0] == mPortalFood);
+}
+
+void Snake::grow() {                         // 方便 Portal 二连吃
+    if (!mSnake.empty())
+        mSnake.push_back(mSnake.back());
 }
 
 void Snake::teleportSnake()

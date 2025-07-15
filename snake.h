@@ -64,6 +64,8 @@ public:
     void resetToInitial();
     void shrink(); // 蛇长度减1
 
+    void grow();   // 让蛇体立即增长一节（不移动）
+
 private:
     const int mGameBoardWidth;
     const int mGameBoardHeight;

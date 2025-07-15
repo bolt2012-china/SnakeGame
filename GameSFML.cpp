@@ -11,6 +11,14 @@
 #   define M_PI 3.14159265358979323846
 #endif
 
+const std::array<GameSFML::FoodQuota,4> GameSFML::kFoodQuotas{{
+    {sf::Color::Red,    1, 5},
+    {sf::Color::Green,  2, 4},
+    {sf::Color::Blue,   3, 3},
+    {sf::Color::Yellow, 5, 2}
+}};
+
+
 namespace
 {
     void makeButton(sf::RectangleShape& rect,
@@ -50,13 +58,17 @@ GameSFML::GameSFML(unsigned int columns,
 , mRows(rows)
 , mCellSize(cellSize)
 , mWindow(
-    sf::VideoMode({ columns * cellSize + 200u,
+    sf::VideoMode({ columns * cellSize + 240u,
                     rows    * cellSize }),
     "Snake Game")
 , mSnake(columns, rows, 2)
 , mFont()
-, mPointsText(mFont)
-, mDifficultyText(mFont)
+, mBaloo2Bold()
+, mRussoOne()
+, mPointsLabel(mBaloo2Bold)
+, mPointsValue(mRussoOne)
+, mLivesText  (mBaloo2Bold) 
+, mDifficultyText(mBaloo2Bold)
 , mInstructionText(mFont)
 , mUpText(mFont)
 , mDownText(mFont)
@@ -66,7 +78,6 @@ GameSFML::GameSFML(unsigned int columns,
 , mLeader1Text(mFont)
 , mLeader2Text(mFont)
 , mLeader3Text(mFont)
-, mHitPointsText(mFont)  
 , mRestartTxt(mFont)   
 , mQuitTxt  (mFont)
 , mHomeDTxt (mFont)    
@@ -125,18 +136,66 @@ GameSFML::GameSFML(unsigned int columns,
         std::cerr << "ERROR: cannot load arial.ttf – check path!" << std::endl;
         std::exit(EXIT_FAILURE);
     }
+
+    if (!mBaloo2Bold.openFromFile("assets/fonts/Baloo2-Bold.ttf")) {
+        std::cerr << "Cannot open assets/fonts/Orbitron.ttf\n";
+        std::exit(EXIT_FAILURE);
+    }
+
+    if (!mRussoOne.openFromFile("assets/fonts/RussoOne.ttf")) {
+        std::cerr << "Cannot open assets/fonts/RussoOne.ttf\n";
+        std::exit(EXIT_FAILURE);
+    }
     
     //侧边栏的框
-    float sidebarW = 200.f;
+    float sidebarW = 240.f;
     float sidebarH = static_cast<float>(mRows * mCellSize);
 
     mSidebarBorder.setSize({sidebarW - 2.f, sidebarH - 2.f});
     mSidebarBorder.setPosition({static_cast<float>(mColumns * mCellSize) + 1.f, 1.f});
-    mSidebarBorder.setFillColor(sf::Color::Transparent);
+    mSidebarBorder.setFillColor(sf::Color(51, 48, 46));
     mSidebarBorder.setOutlineThickness(2.f);
     mSidebarBorder.setOutlineColor(sf::Color::White);
 
-        // ——— Pause / Resume 按钮 ———
+    const float centerX  = columns * cellSize + sidebarW * 0.5f;
+/* ——— POINTS ——— */
+    mPointsLabel.setString("POINTS");
+    mPointsLabel.setCharacterSize(32);
+    mPointsLabel.setFillColor(sf::Color::White);
+    auto b = mPointsLabel.getLocalBounds();
+    mPointsLabel.setOrigin({ b.position.x + b.size.x * 0.5f,
+                         b.position.y + b.size.y * 0.5f });
+    mPointsLabel.setPosition({centerX, 55.f});
+
+    /* ——— POINTS VALUE ——— */
+    mPointsValue.setString("0");
+    mPointsValue.setCharacterSize(52);
+    mPointsValue.setFillColor(sf::Color::White);
+    b = mPointsValue.getLocalBounds();
+    mPointsValue.setOrigin({ b.position.x + b.size.x * 0.5f,
+                         b.position.y + b.size.y * 0.5f });
+    mPointsValue.setPosition({centerX, 110.f});
+
+    /* ——— Lives ——— */
+    mLivesText.setString("Lives: 1");
+    mLivesText.setCharacterSize(26);
+    mLivesText.setFillColor(sf::Color::White);
+    b = mLivesText.getLocalBounds();
+    mLivesText.setOrigin({ b.position.x + b.size.x * 0.5f,
+                       b.position.y + b.size.y * 0.5f });
+    mLivesText.setPosition({centerX, 165.f});
+
+    /* ——— Difficulty ——— */
+    mDifficultyText.setString("Difficulty: 0");
+    mDifficultyText.setCharacterSize(26);
+    mDifficultyText.setFillColor(sf::Color::White);
+    b = mDifficultyText.getLocalBounds();
+    mDifficultyText.setOrigin({ b.position.x + b.size.x * 0.5f,
+                            b.position.y + b.size.y * 0.5f });
+    mDifficultyText.setPosition({centerX, 200.f});
+
+
+    // ——— Pause / Resume 按钮 ———
     const float btnW = 180.f, btnH = 40.f;
     mPauseBtn.setSize({btnW, btnH});
     mPauseBtn.setPosition({ float(mColumns * mCellSize + 10),      // 左边距
@@ -172,15 +231,6 @@ GameSFML::GameSFML(unsigned int columns,
     sf::FloatRect qb = mPauseQuitTxt.getLocalBounds();
     mPauseQuitTxt.setOrigin(sf::Vector2f(qb.size.x*0.5f, qb.size.y*0.5f));
 
-
-    // Points / Difficulty
-    mPointsText.setCharacterSize(16);
-    mPointsText.setPosition({ float(columns * cellSize + 10), 120.f });
-    mPointsText.setString("Points: " + std::to_string(0));  // 初始值
-
-    mDifficultyText.setCharacterSize(16);
-    mDifficultyText.setPosition({ float(columns * cellSize + 10), 150.f });
-    mDifficultyText.setString("Difficulty: " + std::to_string(0));  // 初始值
 
     // 操作说明
     mInstructionText.setCharacterSize(14);
@@ -219,12 +269,6 @@ GameSFML::GameSFML(unsigned int columns,
     mLeader3Text.setCharacterSize(14);
     mLeader3Text.setPosition({ float(columns * cellSize + 10), 250.f });
     mLeader3Text.setString("#3: " + std::to_string(mHighScores[2]));
-
-    // 在构造函数中，加载字体后
-    mHitPointsText.setFont(mFont);
-    mHitPointsText.setCharacterSize(20);
-    mHitPointsText.setPosition({ float(columns * cellSize + 10), 120.f }); // 在得分下方
-    mHitPointsText.setString("Lives: " + std::to_string(mSnake.getHitPoints()));
 
     // 生成初始食物
     generateFood();
@@ -673,23 +717,18 @@ void GameSFML::renderObstacles() {
 }
 
 
-void GameSFML::renderPSFood() {
-    // 渲染普通食物（红色）
-    sf::RectangleShape regularFood({static_cast<float>(mCellSize-1), 
-                                   static_cast<float>(mCellSize-1)});
-    regularFood.setFillColor(sf::Color::Red);
-    regularFood.setPosition({ static_cast<float>(mRegularFood.getX() * mCellSize),
-                        static_cast<float>(mRegularFood.getY() * mCellSize) });
-    mWindow.draw(regularFood);
 
-    // 渲染传送食物（蓝色）
-    sf::RectangleShape portalFood({static_cast<float>(mCellSize-1), 
-                                 static_cast<float>(mCellSize-1)});
-    portalFood.setFillColor(sf::Color::Blue);
-    portalFood.setPosition({ static_cast<float>(mPortalFood.getX() * mCellSize),
-                        static_cast<float>(mPortalFood.getY() * mCellSize) });
-    mWindow.draw(portalFood);
+void GameSFML::renderPairedFood()
+{
+    sf::RectangleShape block({float(mCellSize-1),float(mCellSize-1)});
+    block.setFillColor(sf::Color::Red);
+
+    for (const auto& f : mPortals){
+        block.setPosition({float(f.getX()*mCellSize), float(f.getY()*mCellSize)});
+        mWindow.draw(block);
+    }
 }
+
 
 void GameSFML::renderScoreFood() {
     sf::RectangleShape foodBlock({static_cast<float>(mCellSize - 1), 
@@ -706,7 +745,8 @@ void GameSFML::renderScoreFood() {
 void GameSFML::renderUI() {
     // 动态更新得分和难度
     mDifficultyText.setString("Difficulty: " + std::to_string(mDifficulty));
-    mPointsText.setString("Points: "     + std::to_string(mPoints));
+    mPointsValue   .setString(std::to_string(mPoints));
+    mLivesText     .setString("Lives: "  + std::to_string(mSnake.getHitPoints()));
 
     // 如果后续要保存并更新最高分，再在此处更新 mHighScores 并重设字符串：
     mLeader1Text.setString("#1: " + std::to_string(mHighScores[0]));
@@ -720,7 +760,9 @@ void GameSFML::renderUI() {
     mWindow.draw(mRightText);
 
     mWindow.draw(mDifficultyText);
-    mWindow.draw(mPointsText);
+    mWindow.draw(mPointsLabel);
+    mWindow.draw(mPointsValue);
+    mWindow.draw(mLivesText);
 
     mWindow.draw(mLeaderBoardTitleText);
     mWindow.draw(mLeader1Text);
@@ -736,10 +778,6 @@ void GameSFML::renderUI() {
     // 绘制按钮
     mWindow.draw(mPauseBtn);
     mWindow.draw(mPauseTxt);
-
-     // 更新生命值显示
-    mHitPointsText.setString("Lives: " + std::to_string(mSnake.getHitPoints()));
-    mWindow.draw(mHitPointsText);
 
 }
 
@@ -816,6 +854,8 @@ void GameSFML::restartGame()
     generateObstacles();
     currentType = static_cast<mBorderType>(rand() % 2); // 重启时随机地图类型
     mNewBoardActivated = false; // Reset the flag on restart
+    mSnake.resetHitPoints(); // 重启时补满生命值
+
 }
 
 
@@ -896,7 +936,7 @@ bool GameSFML::hitBoundary()
     return false;
 }
 
-void GameSFML::runPortalMode()
+AppState GameSFML::runPortalMode()
 {
     sf::Clock clock;
     float acc = 0.f;
@@ -905,7 +945,7 @@ void GameSFML::runPortalMode()
     mDifficulty = 0;
     
     // 生成初始的传送门食物
-    generatePortalFood();
+    generatePairedFood();
     
     while (mWindow.isOpen()) {
         processEvents();                    // 主窗口事件
@@ -925,18 +965,38 @@ void GameSFML::runPortalMode()
         }
 
         renderPortalMode();                 // 使用传送门模式专用渲染
+        
     }
+    return mOutcome;
 }
 
 void GameSFML::updatePortalMode() {
     // Check if snake touched portal food first
-    if (mSnake.touchPortalFood()) {
-        mSnake.teleportSnake();
-        mPoints += 5; // Bonus points for using portal
-        // Generate new portal food after teleportation
-        generatePortalFood();
-        return; // Skip normal movement processing this frame
+    SnakeBody next = mSnake.createNewHead();          // 预测下一格
+    int hit = -1;                                     // 0 表示撞到 A，1 表示 B
+    if (next == mPortals[0]) hit = 0;
+    else if (next == mPortals[1]) hit = 1;
+
+    // ↓ 这里还是“撞到 A 或 B 就进入瞬移流程”
+    if (hit != -1) {
+        /*—— 先吃掉 A/B ——*/
+        mSnake.senseFood(mPortals[hit]);
+        mSnake.moveFoward();           // ⬆︎ 已经会增长 1
+        ++mPoints;
+
+        /*—— 传送到另一枚 ——*/
+        int other = 1 - hit;
+        mSnake.teleportToPosition(
+            mPortals[other].getX(), mPortals[other].getY());
+
+        /*—— 吃掉 B/A，再长 1 ——*/
+        mSnake.grow();                 // ← 新增：原地再加一节
+        ++mPoints;
+
+        generatePairedFood();          // 刷新下一对
+        return;                        // 本帧结束
     }
+
     
     if (mSnake.moveFoward()) {
         ++mPoints;
@@ -944,14 +1004,21 @@ void GameSFML::updatePortalMode() {
         mDifficulty = mPoints / 10; 
         mDelay = 0.1f * std::pow(0.85f, static_cast<float>(mDifficulty));
         // Generate new food after eating regular food
-        generatePortalFood();
+        generatePairedFood();
     }
     
     // Portal mode uses basic rectangular boundaries only
-    if (mSnake.checkCollision()) {      
-        updateHighScores(mPoints);
-        mState = GameState::GameOver;
-        openGameOverDialog();
+    if (mSnake.checkCollision()) { 
+        mSnake.decreaseHitPoints();
+        if (mSnake.getHitPoints() <= 0) {     
+            updateHighScores(mPoints);
+            mState = GameState::GameOver;
+            openGameOverDialog();
+        } else {   // 还有命：复活并短暂无敌
+            mSnake.resetToInitial();
+            mInvincibleTimer = 1.0f;    // 1 秒无敌闪烁
+        }
+
     }
 }
 
@@ -961,40 +1028,31 @@ void GameSFML::renderPortalMode() {
     // Always use basic rectangular board in portal mode
     renderBoard(); // This renders the basic rectangular border
     
-    renderPSFood();  // Renders both regular and portal food
+    renderPairedFood();  // Renders both regular and portal food
     renderSnake();
     mWindow.draw(mSidebarBorder);
     renderUI();
     mWindow.display();
 }
 
-void GameSFML::generatePortalFood() {
-    // 生成普通食物（红色） - 简化版本用于基础游戏板，确保不在边界上
+void GameSFML::generatePairedFood()          // ← 新名字
+{
     std::srand(static_cast<unsigned>(time(nullptr)));
-    while (true) {
-        int fx = 1 + std::rand() % (mColumns - 2);  // 避免边界 (1 到 mColumns-2)
-        int fy = 1 + std::rand() % (mRows - 2);     // 避免边界 (1 到 mRows-2)
-        if (!mSnake.isPartOfSnake(fx, fy)) {
-            mRegularFood = SnakeBody(fx, fy);  // 普通食物
-            break;
+    for (int i = 0; i < 2; ++i)              // 连续生成 A、B
+    {
+        while (true) {
+            int x = 1 + std::rand() % (mColumns - 2);
+            int y = 1 + std::rand() % (mRows    - 2);
+
+            bool overlapSnake = mSnake.isPartOfSnake(x,y);
+            bool overlapOther = (i==1) && (x==mPortals[0].getX() && y==mPortals[0].getY());
+
+            if (!overlapSnake && !overlapOther) {
+                mPortals[i] = SnakeBody(x,y);
+                break;
+            }
         }
     }
-
-    // 生成传送食物（蓝色） - 简化版本用于基础游戏板，确保不在边界上
-    while (true) {
-        int fx = 1 + std::rand() % (mColumns - 2);  // 避免边界 (1 到 mColumns-2)
-        int fy = 1 + std::rand() % (mRows - 2);     // 避免边界 (1 到 mRows-2)
-        // 确保不与蛇身和普通食物重叠
-        if (!mSnake.isPartOfSnake(fx, fy) && 
-           !(fx == mRegularFood.getX() && fy == mRegularFood.getY())) {
-            mPortalFood = SnakeBody(fx, fy);  // 传送食物
-            break;
-        }
-    }
-
-    // 蛇感知普通食物（传送食物需要特殊处理）
-    mSnake.senseFood(mRegularFood);
-    mSnake.sensePortalFood(mPortalFood);
 }
 
 void GameSFML::generateObstacles() {
@@ -1111,15 +1169,11 @@ void GameSFML::generateScoreObstacles()
                 valid = false;
             }
             
-            // 检查是否与普通食物重叠
-            if (valid && ox == mRegularFood.getX() && oy == mRegularFood.getY()) {
+            // 检查是否与食物重叠
+            if (valid && ox == mFood.getX() && oy == mFood.getY()) {
                 valid = false;
             }
-            
-            // 检查是否与传送食物重叠
-            if (valid && ox == mPortalFood.getX() && oy == mPortalFood.getY()) {
-                valid = false;
-            }
+        
             
             // 检查是否与其他障碍物重叠
             if (valid) {
@@ -1187,88 +1241,37 @@ bool GameSFML::hitObstacles()
     return false;
 }
 
-void GameSFML::generateScoreFood() {
-    // 清空现有的分数模式食物
-    mScoreFoods.clear();
-    
-    // 定义不同颜色的食物和对应分值（减少种类）
-    std::vector<std::pair<sf::Color, int>> foodTypes = {
-        {sf::Color::Red, 1},        // 红色食物：1分
-        {sf::Color::Green, 2},      // 绿色食物：2分  
-        {sf::Color::Blue, 3},       // 蓝色食物：3分
-        {sf::Color::Yellow, 5}      // 黄色食物：5分
-    };
-    
-    // 生成适量食物（减少数量）
-    int totalFoods = std::min(15, static_cast<int>(mColumns * mRows) / 25); // 最多15个食物
-    
-    std::srand(static_cast<unsigned>(time(nullptr)));
-    
-    for (int i = 0; i < totalFoods; ++i) {
-        bool validPosition = false;
-        int attempts = 0;
-        const int MAX_ATTEMPTS = 100;
-        
-        while (!validPosition && attempts < MAX_ATTEMPTS) {
-            int fx = 1 + std::rand() % (mColumns - 2);  // 避免边界
-            int fy = 1 + std::rand() % (mRows - 2);     // 避免边界
-            attempts++;
-            
-            validPosition = true;
-            
-            // 检查是否与蛇身重叠
-            if (mSnake.isPartOfSnake(fx, fy)) {
-                validPosition = false;
-                continue;
-            }
-            
-            // 检查是否与已生成的食物重叠
-            for (const auto& food : mScoreFoods) {
-                if (food.position.getX() == fx && food.position.getY() == fy) {
-                    validPosition = false;
-                    break;
-                }
-            }
-            
-            // 检查是否与障碍物重叠
-            if (validPosition) {
-                for (const auto& obs : mObstacles) {
-                    if (obs.getX() == fx && obs.getY() == fy) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-            }
-            
-            // 检查是否与隧道重叠
-            if (validPosition) {
-                for (const auto& tunnel : mScoreTunnels) {
-                    if ((tunnel.entrance.getX() == fx && tunnel.entrance.getY() == fy) ||
-                        (tunnel.exit.getX() == fx && tunnel.exit.getY() == fy)) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-            }
-            
-            if (validPosition) {
-                // 随机选择食物类型
-                int typeIndex = std::rand() % foodTypes.size();
-                auto& foodType = foodTypes[typeIndex];
-                
-                ColoredFood newFood;
-                newFood.position = SnakeBody(fx, fy);
-                newFood.color = foodType.first;
-                newFood.value = foodType.second;
-                
-                mScoreFoods.push_back(newFood);
-                break;
-            }
+void GameSFML::generateScoreFood()           // ← 整个函数重写
+{
+    /* 1️⃣ 统计当前各颜色数量 */
+    std::array<int,4> counts{0,0,0,0};
+    for (const auto& f : mScoreFoods)
+        for (std::size_t i = 0; i < kFoodQuotas.size(); ++i)
+            if (f.color == kFoodQuotas[i].color)
+                ++counts[i];
+
+    /* 2️⃣ 逐色补足配额 */
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    for (std::size_t i = 0; i < kFoodQuotas.size(); ++i)
+    {
+        while (counts[i] < kFoodQuotas[i].quota)
+        {
+            int x, y;
+            do {
+                x = 1 + std::rand() % (mColumns - 2);
+                y = 1 + std::rand() % (mRows    - 2);
+            } while (mSnake.isPartOfSnake(x,y) || scoreFoodAt(x,y));
+
+            mScoreFoods.push_back({{x,y},
+                                    kFoodQuotas[i].color,
+                                    kFoodQuotas[i].value});
+            ++counts[i];
         }
     }
 }
 
-void GameSFML::runScoreMode()
+
+AppState GameSFML::runScoreMode()
 {
     sf::Clock clock;
     float acc = 0.f;
@@ -1301,6 +1304,7 @@ void GameSFML::runScoreMode()
 
         renderScoreMode();                  // 使用分数模式专用渲染
     }
+    return mOutcome;
 }
 
 void GameSFML::updateScoreMode() {
@@ -1337,16 +1341,14 @@ void GameSFML::updateScoreMode() {
             mSnake.senseFood(it->position);
             
             mScoreFoods.erase(it); // 移除被吃掉的食物
+
+            generateScoreFood();  
             
             // 现在移动蛇，由于已经感知到食物，它会增长
             mSnake.moveFoward(); // 移动蛇并增长
             
-            ateFood = true;
+            ateFood = true; //立即补足各颜色配额
             
-            // 如果食物数量太少，重新生成
-            if (mScoreFoods.size() < 10) {
-                generateScoreFood();
-            }
             
             // 每获得一定分数后重新激活隧道
             if (mPoints % 50 == 0) {
@@ -1373,10 +1375,16 @@ void GameSFML::updateScoreMode() {
     }
     
     // 碰撞检测 - 分数模式使用基础矩形边界
-    if (mSnake.checkCollision()) {      
-        updateHighScores(mPoints);
-        mState = GameState::GameOver;
-        openGameOverDialog();
+    if (mSnake.checkCollision()) { 
+        mSnake.decreaseHitPoints(); 
+        if (mSnake.getHitPoints() <= 0) {    
+            updateHighScores(mPoints);
+            mState = GameState::GameOver;
+            openGameOverDialog();
+        } else {  // 还有命：复活并短暂无敌
+            mSnake.resetToInitial();
+            mInvincibleTimer = 1.0f;
+        }
     }
     
     // 障碍物碰撞检测
@@ -1494,63 +1502,29 @@ void GameSFML::generateScoreTunnels() {
     }
 }
 
-void GameSFML::renderScoreTunnels() {
-    for (const auto& tunnel : mScoreTunnels) {
-        if (!tunnel.isActive) continue;
-        
-        // 计算入口和出口的中心点坐标
-        float entranceX = tunnel.entrance.getX() * mCellSize + mCellSize / 2.0f;
-        float entranceY = tunnel.entrance.getY() * mCellSize + mCellSize / 2.0f;
-        float exitX = tunnel.exit.getX() * mCellSize + mCellSize / 2.0f;
-        float exitY = tunnel.exit.getY() * mCellSize + mCellSize / 2.0f;
-        
-        // 计算连接线的长度和角度
-        float deltaX = exitX - entranceX;
-        float deltaY = exitY - entranceY;
-        float Length = std::sqrt(deltaX * deltaX + deltaY * deltaY);
-        float angle = std::atan2(deltaY, deltaX) * 180.0f / M_PI;
-        
-        
-        // 创建连接线（隧道主体）
-        sf::RectangleShape tunnelLine({Length, static_cast<float>(mCellSize / 4)});
-        tunnelLine.setFillColor(sf::Color(tunnel.color.r, tunnel.color.g, tunnel.color.b, 128)); // 半透明
-        tunnelLine.setPosition({entranceX, entranceY - mCellSize / 8.0f});
-        tunnelLine.setRotation(sf::degrees(angle));
-        
-        // 渲染隧道入口（方形）
-        sf::RectangleShape entrance({static_cast<float>(mCellSize - 2), 
-                                   static_cast<float>(mCellSize - 2)});
-        entrance.setFillColor(tunnel.color);
-        entrance.setPosition({static_cast<float>(tunnel.entrance.getX() * mCellSize + 1),
-                            static_cast<float>(tunnel.entrance.getY() * mCellSize + 1)});
-        
-        // 添加入口标识（内部小方块）
-        sf::RectangleShape entranceMarker({static_cast<float>(mCellSize / 3), 
-                                         static_cast<float>(mCellSize / 3)});
-        entranceMarker.setFillColor(sf::Color::White);
-        entranceMarker.setPosition({static_cast<float>(tunnel.entrance.getX() * mCellSize + mCellSize/3),
-                                  static_cast<float>(tunnel.entrance.getY() * mCellSize + mCellSize/3)});
-        
-        // 渲染隧道出口（圆形）
-        sf::CircleShape exit(static_cast<float>(mCellSize / 2 - 1));
-        exit.setFillColor(tunnel.color);
-        exit.setPosition({static_cast<float>(tunnel.exit.getX() * mCellSize + 1),
-                        static_cast<float>(tunnel.exit.getY() * mCellSize + 1)});
-        
-        // 添加出口标识（内部小圆）
-        sf::CircleShape exitMarker(static_cast<float>(mCellSize / 6));
-        exitMarker.setFillColor(sf::Color::White);
-        exitMarker.setPosition({static_cast<float>(tunnel.exit.getX() * mCellSize + mCellSize/3),
-                              static_cast<float>(tunnel.exit.getY() * mCellSize + mCellSize/3)});
-        
-        // 先画连接线，再画入口和出口（保证入口出口在最上层）
-        mWindow.draw(tunnelLine);
-        mWindow.draw(entrance);
-        mWindow.draw(entranceMarker);
-        mWindow.draw(exit);
-        mWindow.draw(exitMarker);
+void GameSFML::renderScoreTunnels()
+{
+    for (const auto& t : mScoreTunnels)
+    {
+        if (!t.isActive) continue;
+
+        /* ③-1 入口：方块 */
+        sf::RectangleShape inBlock({float(mCellSize-1),float(mCellSize-1)});
+        inBlock.setFillColor(t.color);
+        inBlock.setPosition({float(t.entrance.getX()*mCellSize),
+                             float(t.entrance.getY()*mCellSize)});
+        mWindow.draw(inBlock);
+
+        /* ③-2 出口：圆点 */
+        sf::CircleShape outDot(float(mCellSize-1)/2.f);
+        outDot.setFillColor(t.color);
+        outDot.setPosition({float(t.exit.getX()*mCellSize),
+                            float(t.exit.getY()*mCellSize)});
+        mWindow.draw(outDot);
+
     }
 }
+
 
 bool GameSFML::isSnakeInCenterArea() {
     const auto& snakeVec = mSnake.getSnake();
@@ -1586,5 +1560,13 @@ bool GameSFML::isSnakeInCenterArea() {
             return (a >= 0.15 && a <= 0.85 && b >= 0.15 && b <= 0.85 && c >= 0.15 && c <= 0.85);
         }
     }
+    return false;
+}
+
+bool GameSFML::scoreFoodAt(int x, int y) const
+{
+    for (const auto& f : mScoreFoods)
+        if (f.position.getX() == x && f.position.getY() == y)
+            return true;
     return false;
 }

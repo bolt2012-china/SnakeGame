@@ -16,10 +16,11 @@ public:
     bool hitBoundary();
     bool hitObstacles();
     bool isSnakeInCenterArea(); // Helper function to check if snake is in center area
-    void runPortalMode();  // TODO
-    void runScoreMode();  // 分数模式
+    AppState runPortalMode();  // TODO
+    AppState runScoreMode();  // 分数模式
 
 private:
+    
     void drawBackground(); //绘制游戏窗口背景图
     void processEvents();
     void update();
@@ -32,7 +33,6 @@ private:
     void renderNewBoard();
     void renderSnake();
     void renderFood();
-    void renderPSFood();
     void renderScoreFood();  // 渲染分数模式的多彩食物
     void renderScoreTunnels(); // 渲染分数隧道
     void renderObstacles();
@@ -48,12 +48,16 @@ private:
     void saveHighScores();              // 数组变更时写文件
 
     void generateFood();                // 生成食物
-    void generatePortalFood(); // 生成RB食物
+    void generatePairedFood(); //生成传送食物
+    void renderPairedFood();   
+
     void generateScoreFood();  // 生成大量不同颜色的食物
     void generateScoreTunnels(); // 生成分数隧道
 
     void generateObstacles(); // 生成障碍物
     void generateScoreObstacles(); // 生成障碍物
+
+    bool scoreFoodAt(int x, int y) const; //判断格子是否已被彩色食物占用
    
 
     GameState mState = GameState::Playing;
@@ -77,9 +81,15 @@ private:
     float mDelay = 0.1f;
 
     sf::Font mFont;
-    sf::Text mPointsText;
-    sf::Text mDifficultyText;
+    sf::Font mBaloo2Bold;
+    sf::Font mRussoOne;
+
     sf::Text mInstructionText;
+
+    sf::Text mPointsLabel; 
+    sf::Text mPointsValue;
+    sf::Text mLivesText;
+    sf::Text mDifficultyText; 
     
     sf::Text mUpText;
     sf::Text mDownText;
@@ -103,14 +113,14 @@ private:
     sf::Text        mHomeDTxt;
 
     // HP
-    sf::Text mHitPointsText;
+    // 旧的 mHitPointsText 已被 mLivesText 取代
     float mHitEffectTimer = 0.0f;
     float mInvincibleTimer = 0.0f;
 
     bool visible = true;
 
-    SnakeBody mRegularFood;  // 普通食物（红色）
-    SnakeBody mPortalFood;   // 传送食物（蓝色）
+    //传送食物
+    std::array<SnakeBody,2>  mPortals; 
 
     // Score Mode 多彩食物
     struct ColoredFood {
@@ -155,6 +165,9 @@ private:
     bool mOverlayHoverQuit   = false;   
 
     AppState mOutcome = AppState::Exit;
+
+    struct FoodQuota { sf::Color color; int value; int quota; };
+    static const std::array<FoodQuota,4> kFoodQuotas;
 
 };
 

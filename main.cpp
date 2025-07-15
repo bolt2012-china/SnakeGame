@@ -10,7 +10,7 @@ using gui::StartScreen;
 int main()
 {
     // 计算窗口尺寸、网格参数 
-    constexpr unsigned COLS = 60, ROWS = 45, SIDE = 200;
+    constexpr unsigned COLS = 40, ROWS = 30, SIDE = 240;
     auto desk = sf::VideoMode::getDesktopMode();
     unsigned deskW = desk.size.x; 
     unsigned deskH = desk.size.y;
@@ -51,15 +51,31 @@ int main()
         }
         case AppState::PortalMode: {
             window.close();                      
-            GameSFML game(COLS, ROWS, cell);     
-            game.runPortalMode();
-            return 0;                            
+            GameSFML game(COLS, ROWS, cell);   
+            AppState result = game.runPortalMode();  
+            if (result == AppState::StartMenu) {
+                 window.create(
+                    sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
+                    "Snake");
+                state = AppState::StartMenu;
+            } else {
+                state = AppState::Exit;
+            }
+            break;                         
         }
         case AppState::ScoreMode: {
-            window.close();                      
-            GameSFML game(COLS, ROWS, cell);     
-            game.runScoreMode();
-            return 0;                            
+           window.close();                      
+            GameSFML game(COLS, ROWS, cell);   
+            AppState result = game.runScoreMode();  
+            if (result == AppState::StartMenu) {
+                 window.create(
+                    sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
+                    "Snake");
+                state = AppState::StartMenu;
+            } else {
+                state = AppState::Exit;
+            }
+            break;                                 
         }
         default:
             state = AppState::Exit;
