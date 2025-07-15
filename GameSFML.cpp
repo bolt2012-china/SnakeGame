@@ -132,18 +132,18 @@ GameSFML::GameSFML(unsigned int columns,
 
     loadHighScores();
     // 加载字体
-    if (!mFont.openFromFile("C:/Windows/Fonts/arial.ttf")) {
+    if (!mFont.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf")) {
         std::cerr << "ERROR: cannot load arial.ttf – check path!" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
-    if (!mBaloo2Bold.openFromFile("assets/fonts/Baloo2-Bold.ttf")) {
-        std::cerr << "Cannot open assets/fonts/Orbitron.ttf\n";
+    if (!mBaloo2Bold.openFromFile("assets/fonts/Baloo2.ttf")) {
+        std::cerr << "Cannot open assets/fonts/Baloo2.ttf\n";
         std::exit(EXIT_FAILURE);
     }
 
-    if (!mRussoOne.openFromFile("assets/fonts/RussoOne.ttf")) {
-        std::cerr << "Cannot open assets/fonts/RussoOne.ttf\n";
+    if (!mRussoOne.openFromFile("assets/fonts/Baloo2.ttf")) {
+        std::cerr << "Cannot open assets/fonts/Baloo2.ttf\n";
         std::exit(EXIT_FAILURE);
     }
     
@@ -337,16 +337,38 @@ void GameSFML::processEvents()
         else if (auto key = event.getIf<sf::Event::KeyPressed>()) {
             Direction currentDir = mSnake.getDirection();
             Direction newDir     = currentDir;
+            
+            bool ctrlPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || 
+                             sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl);
 
             switch (key->scancode) {
+                // Standard movement: Up/Down for forward/backward, Left/Right for turns
                 case sf::Keyboard::Scancode::W:
-                case sf::Keyboard::Scancode::Up:    newDir = Direction::Up;    break;
+                case sf::Keyboard::Scancode::Up:    
+                    // Up always means forward in current direction (no change)
+                    newDir = currentDir;
+                    break;
                 case sf::Keyboard::Scancode::S:
-                case sf::Keyboard::Scancode::Down:  newDir = Direction::Down;  break;
+                case sf::Keyboard::Scancode::Down:  
+                    // Down means reverse direction (180° turn)
+                    newDir = Direction::Down; // Could implement 180° turn if needed
+                    break;
                 case sf::Keyboard::Scancode::A:
-                case sf::Keyboard::Scancode::Left:  newDir = Direction::Left;  break;
+                case sf::Keyboard::Scancode::Left:  
+                    if (ctrlPressed) {
+                        newDir = mSnake.getLeftTurn();        // Ctrl+Left = 60° counter-clockwise
+                    } else {
+                        newDir = mSnake.getPositiveLeftTurn(); // Left = 90° counter-clockwise (positive left)
+                    }
+                    break;
                 case sf::Keyboard::Scancode::D:
-                case sf::Keyboard::Scancode::Right: newDir = Direction::Right; break;
+                case sf::Keyboard::Scancode::Right: 
+                    if (ctrlPressed) {
+                        newDir = mSnake.getRightTurn();        // Ctrl+Right = 60° clockwise
+                    } else {
+                        newDir = mSnake.getPositiveRightTurn(); // Right = 90° clockwise (positive right)
+                    }
+                    break;
 
                 // 重启
                 case sf::Keyboard::Scancode::R:
@@ -596,6 +618,11 @@ void GameSFML::renderNewBoard() {
 void GameSFML::renderSnake() {
     sf::RectangleShape body({ float(mCellSize - 1), float(mCellSize - 1) });
     body.setFillColor(sf::Color(255, 200, 50));
+    
+    // Create circle for junctions with diameter equal to square width
+    sf::CircleShape junction(float(mCellSize) / 2.0f); // Slightly larger radius for better coverage
+    junction.setFillColor(sf::Color(255, 200, 50));
+    junction.setOrigin(sf::Vector2f(float(mCellSize) / 2.0f, float(mCellSize) / 2.0f));
 
     const auto& parts = mSnake.getSnake();
     if (parts.empty()) return;
@@ -607,10 +634,14 @@ void GameSFML::renderSnake() {
         head.getY() * mCellSize + mCellSize * 0.5f });
 
     switch (mSnake.getDirection()) {
-        case Direction::Up:    mHeadSprite.setRotation(sf::degrees(0.f)); break;
-        case Direction::Down:  mHeadSprite.setRotation(sf::degrees(180.f)); break;
-        case Direction::Left:  mHeadSprite.setRotation(sf::degrees(270.f)); break;
-        case Direction::Right: mHeadSprite.setRotation(sf::degrees(90.f)); break;
+        case Direction::Up:        mHeadSprite.setRotation(sf::degrees(0.f)); break;
+        case Direction::UpRight:   mHeadSprite.setRotation(sf::degrees(45.f)); break;
+        case Direction::Right:     mHeadSprite.setRotation(sf::degrees(90.f)); break;
+        case Direction::DownRight: mHeadSprite.setRotation(sf::degrees(135.f)); break;
+        case Direction::Down:      mHeadSprite.setRotation(sf::degrees(180.f)); break;
+        case Direction::DownLeft:  mHeadSprite.setRotation(sf::degrees(225.f)); break;
+        case Direction::Left:      mHeadSprite.setRotation(sf::degrees(270.f)); break;
+        case Direction::UpLeft:    mHeadSprite.setRotation(sf::degrees(315.f)); break;
     }
 
     mHeadSprite.setColor(mSnake.isAccelerating()
@@ -618,13 +649,43 @@ void GameSFML::renderSnake() {
                          : sf::Color::White);
     mWindow.draw(mHeadSprite);
 
-    //画蛇身
+    //画蛇身 - 使用方形
     for (std::size_t i = 1; i < parts.size(); ++i) {
         const auto& p = parts[i];
         body.setPosition({ float(p.getX() * mCellSize),
                            float(p.getY() * mCellSize) });
         mWindow.draw(body);
+        
+        // Draw junction circle at each body segment to smooth connections
+        junction.setPosition(sf::Vector2f(p.getX() * mCellSize + mCellSize * 0.5f,
+                            p.getY() * mCellSize + mCellSize * 0.5f));
+        mWindow.draw(junction);
+        
+        // Draw additional junction circles between adjacent segments for diagonal connections
+        // Handle head-to-body junction (i == 1) and body-to-body junctions (i > 1)
+        const auto& prev = parts[i-1]; // Previous segment (head if i==1, body if i>1)
+        const auto& curr = parts[i];   // Current body segment
+        
+        // Check if segments are diagonally connected
+        int dx = abs(prev.getX() - curr.getX());
+        int dy = abs(prev.getY() - curr.getY());
+        if (dx > 0 && dy > 0) { // Diagonal connection detected
+            // Draw multiple intermediate circles for smoother diagonal connections
+            for (int step = 1; step <= 3; ++step) {
+                float t = step / 4.0f; // Interpolation factor (0.25, 0.5, 0.75)
+                float interpX = prev.getX() * (1-t) + curr.getX() * t;
+                float interpY = prev.getY() * (1-t) + curr.getY() * t;
+                
+                float posX = interpX * mCellSize + mCellSize * 0.5f;
+                float posY = interpY * mCellSize + mCellSize * 0.5f;
+                
+                junction.setPosition(sf::Vector2f(posX, posY));
+                mWindow.draw(junction);
+            }
+        }
     }
+    
+    
 }
 
 void GameSFML::generateFood() {
@@ -1002,7 +1063,7 @@ void GameSFML::updatePortalMode() {
         ++mPoints;
         // In portal mode, difficulty increases slower
         mDifficulty = mPoints / 10; 
-        mDelay = 0.1f * std::pow(0.85f, static_cast<float>(mDifficulty));
+        mDelay = 0.1f * std::pow(0.75f, static_cast<float>(mDifficulty));
         // Generate new food after eating regular food
         generatePairedFood();
     }
@@ -1325,7 +1386,7 @@ void GameSFML::updateScoreMode() {
             
             // 难度逐渐增加
             mDifficulty = mPoints / 20;
-            mDelay = 0.1f * std::pow(0.85f, static_cast<float>(mDifficulty));
+            mDelay = 0.1f * std::pow(0.75f, static_cast<float>(mDifficulty));
             
             return; // 使用隧道后直接返回
         }
@@ -1361,7 +1422,7 @@ void GameSFML::updateScoreMode() {
             
             // 难度逐渐增加
             mDifficulty = mPoints / 20; // 分数模式难度增加更慢
-            mDelay = 0.1f * std::pow(0.85f, static_cast<float>(mDifficulty));
+            mDelay = 0.1f * std::pow(0.75f, static_cast<float>(mDifficulty));
             
             break; // 吃到食物后跳出循环
         }
@@ -1570,3 +1631,4 @@ bool GameSFML::scoreFoodAt(int x, int y) const
             return true;
     return false;
 }
+

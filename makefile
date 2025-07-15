@@ -4,7 +4,7 @@ SFML_INCLUDE = -I/home/suzyxia/Downloads/SFML-3.0.0-linux-gcc-64-bit/SFML-3.0.0/
 SFML_LIB = -L/home/suzyxia/Downloads/SFML-3.0.0-linux-gcc-64-bit/SFML-3.0.0/lib
 SFML_LIBS = -lsfml-graphics -lsfml-window -lsfml-system
 
-SRCS = main.cpp GameSFML.cpp snake.cpp
+SRCS = main.cpp GameSFML.cpp snake.cpp StartScreen.cpp
 OBJS = $(SRCS:.cpp=.o)
 TARGET = snake_game
 

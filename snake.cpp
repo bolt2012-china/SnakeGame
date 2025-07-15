@@ -53,6 +53,7 @@ void Snake::initializeSnake()
 
     for (int i = 0; i < this->mInitialSnakeLength; i ++)
     {
+        // For hexagonal movement, we still place segments in a straight line initially
         this->mSnake.push_back(SnakeBody(centerX, centerY + i));
     }
     this->mDirection = Direction::Up;
@@ -160,28 +161,57 @@ bool Snake::changeDirection(Direction newDirection)
     {
         case Direction::Up:
         {
-			if (newDirection == Direction::Down){
-                return false;
+            if (newDirection == Direction::Down){
+                return false; // Cannot reverse
             }
             break;
         }
-        case Direction::Down:
+        case Direction::UpRight:
         {
-			if (newDirection == Direction::Up){
-                return false;
-            }            break;
-        }
-        case Direction::Left:
-        {
-			if (newDirection == Direction::Right){
-                return false;
+            if (newDirection == Direction::DownLeft){
+                return false; // Cannot reverse
             }
             break;
         }
         case Direction::Right:
         {
-		    if (newDirection == Direction::Left){
-                return false;
+            if (newDirection == Direction::Left){
+                return false; // Cannot reverse
+            }
+            break;
+        }
+        case Direction::DownRight:
+        {
+            if (newDirection == Direction::UpLeft){
+                return false; // Cannot reverse
+            }
+            break;
+        }
+        case Direction::Down:
+        {
+            if (newDirection == Direction::Up){
+                return false; // Cannot reverse
+            }
+            break;
+        }
+        case Direction::DownLeft:
+        {
+            if (newDirection == Direction::UpRight){
+                return false; // Cannot reverse
+            }
+            break;
+        }
+        case Direction::Left:
+        {
+            if (newDirection == Direction::Right){
+                return false; // Cannot reverse
+            }
+            break;
+        }
+        case Direction::UpLeft:
+        {
+            if (newDirection == Direction::DownRight){
+                return false; // Cannot reverse
             }
             break;
         }
@@ -194,24 +224,41 @@ bool Snake::changeDirection(Direction newDirection)
 
 SnakeBody Snake::createNewHead()
 {
-    if (mSnake.empty()) return SnakeBody(0, 0); // 判空保护
+    if (mSnake.empty()) return SnakeBody(0, 0); // Safety check
     int headX = this->mSnake[0].getX();
     int headY = this->mSnake[0].getY();
     
-    // Modify according to current direction
+    // For simplicity, we'll use a square grid but with 8-directional movement
+    // This gives us the hexagonal-like movement pattern
     switch (this->mDirection)
     {
         case Direction::Up:
             headY -= 1;
             break;
+        case Direction::UpRight:
+            headY -= 1;
+            headX += 1;
+            break;
+        case Direction::Right:
+            headX += 1;
+            break;
+        case Direction::DownRight:
+            headY += 1;
+            headX += 1;
+            break;
         case Direction::Down:
             headY += 1;
+            break;
+        case Direction::DownLeft:
+            headY += 1;
+            headX -= 1;
             break;
         case Direction::Left:
             headX -= 1;
             break;
-        case Direction::Right:
-            headX += 1;
+        case Direction::UpLeft:
+            headY -= 1;
+            headX -= 1;
             break;
     }
 
@@ -297,4 +344,88 @@ void Snake::teleportToPosition(int x, int y)
         // 传送蛇头到指定位置
         mSnake[0] = SnakeBody(x, y);
     }
+}
+
+Direction Snake::getLeftTurn() const {
+    switch (mDirection) {
+        case Direction::Up:        return Direction::UpLeft;
+        case Direction::UpRight:   return Direction::Up;
+        case Direction::Right:     return Direction::UpRight;
+        case Direction::DownRight: return Direction::Right;
+        case Direction::Down:      return Direction::DownRight;
+        case Direction::DownLeft:  return Direction::Down;
+        case Direction::Left:      return Direction::DownLeft;
+        case Direction::UpLeft:    return Direction::Left;
+    }
+    return mDirection; // fallback
+}
+
+Direction Snake::getRightTurn() const {
+    switch (mDirection) {
+        case Direction::Up:        return Direction::UpRight;
+        case Direction::UpRight:   return Direction::Right;
+        case Direction::Right:     return Direction::DownRight;
+        case Direction::DownRight: return Direction::Down;
+        case Direction::Down:      return Direction::DownLeft;
+        case Direction::DownLeft:  return Direction::Left;
+        case Direction::Left:      return Direction::UpLeft;
+        case Direction::UpLeft:    return Direction::Up;
+    }
+    return mDirection; // fallback
+}
+
+Direction Snake::getSharpLeftTurn() const {
+    switch (mDirection) {
+        case Direction::Up:        return Direction::Left;
+        case Direction::UpRight:   return Direction::UpLeft;
+        case Direction::Right:     return Direction::Up;
+        case Direction::DownRight: return Direction::UpRight;
+        case Direction::Down:      return Direction::Right;
+        case Direction::DownLeft:  return Direction::DownRight;
+        case Direction::Left:      return Direction::Down;
+        case Direction::UpLeft:    return Direction::DownLeft;
+    }
+    return mDirection; // fallback
+}
+
+Direction Snake::getSharpRightTurn() const {
+    switch (mDirection) {
+        case Direction::Up:        return Direction::Right;
+        case Direction::UpRight:   return Direction::DownRight;
+        case Direction::Right:     return Direction::Down;
+        case Direction::DownRight: return Direction::DownLeft;
+        case Direction::Down:      return Direction::Left;
+        case Direction::DownLeft:  return Direction::UpLeft;
+        case Direction::Left:      return Direction::Up;
+        case Direction::UpLeft:    return Direction::UpRight;
+    }
+    return mDirection; // fallback
+}
+
+Direction Snake::getPositiveLeftTurn() const {
+    switch (mDirection) {
+        case Direction::Up:        return Direction::Left;
+        case Direction::UpRight:   return Direction::UpLeft;
+        case Direction::Right:     return Direction::Up;
+        case Direction::DownRight: return Direction::UpRight;
+        case Direction::Down:      return Direction::Right;
+        case Direction::DownLeft:  return Direction::DownRight;
+        case Direction::Left:      return Direction::Down;
+        case Direction::UpLeft:    return Direction::DownLeft;
+    }
+    return mDirection; // fallback
+}
+
+Direction Snake::getPositiveRightTurn() const {
+    switch (mDirection) {
+        case Direction::Up:        return Direction::Right;
+        case Direction::UpRight:   return Direction::DownRight;
+        case Direction::Right:     return Direction::Down;
+        case Direction::DownRight: return Direction::DownLeft;
+        case Direction::Down:      return Direction::Left;
+        case Direction::DownLeft:  return Direction::UpLeft;
+        case Direction::Left:      return Direction::Up;
+        case Direction::UpLeft:    return Direction::UpRight;
+    }
+    return mDirection; // fallback
 }

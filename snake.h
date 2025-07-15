@@ -5,10 +5,14 @@
 
 enum class Direction
 {
-    Up = 0,
-    Down = 1,
-    Left = 2,
-    Right = 3,
+    Up = 0,          // North (0°)
+    UpRight = 1,     // Northeast (60°)
+    Right = 2,       // East (90°) - Positive Right
+    DownRight = 3,   // Southeast (120°)
+    Down = 4,        // South (180°)
+    DownLeft = 5,    // Southwest (240°)
+    Left = 6,        // West (270°) - Positive Left  
+    UpLeft = 7,      // Northwest (300°)
 };
 
 //Snake body segment
@@ -65,6 +69,14 @@ public:
     void shrink(); // 蛇长度减1
 
     void grow();   // 让蛇体立即增长一节（不移动）
+
+    // Hexagonal direction helper functions
+    Direction getLeftTurn() const;          // Turn 60° counter-clockwise
+    Direction getRightTurn() const;         // Turn 60° clockwise
+    Direction getSharpLeftTurn() const;     // Turn 120° counter-clockwise  
+    Direction getSharpRightTurn() const;    // Turn 120° clockwise
+    Direction getPositiveLeftTurn() const;  // Turn 90° counter-clockwise (2 hex steps)
+    Direction getPositiveRightTurn() const; // Turn 90° clockwise (2 hex steps)
 
 private:
     const int mGameBoardWidth;
