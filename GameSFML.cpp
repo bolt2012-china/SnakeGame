@@ -1450,21 +1450,22 @@ void GameSFML::generateScoreObstacles()
             attempts++;
             if (mSnake.isPartOfSnake(ox, oy)) {
                 valid = false;
-            if (valid && ox == mFood.getX() && oy == mFood.getY()) {
-                valid = false;
-            }
-            if (valid) {
-                for (const auto& obs : mObstacles) {
-                    if (obs.getX() == ox && obs.getY() == oy) {
+                if (valid && ox == mFood.getX() && oy == mFood.getY()) {
+                    valid = false;
+                }
+                if (valid) {
+                    for (const auto& obs : mObstacles) {
+                        if (obs.getX() == ox && obs.getY() == oy) {
                         valid = false;
                         break;
+                        }
                     }
                 }
-            }
             
-            if (valid) {
-                mObstacles.push_back(SnakeBody(ox, oy));
-                break;
+                if (valid) {
+                    mObstacles.push_back(SnakeBody(ox, oy));
+                    break;
+                }
             }
         }
     }
