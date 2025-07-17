@@ -586,7 +586,7 @@ void GameSFML::processEvents()
                         mFood  = SnakeBody(fx, fy);
                     } while (mSnake.isPartOfSnake(mFood.getX(), mFood.getY()));
                     mSnake.senseFood(mFood);
-                    mDelay       = 0.1f;
+                    mDelay = 0.1f;
                     currentType  = static_cast<mBorderType>(std::rand() % 2);
                     break;
                 case sf::Keyboard::Scancode::Escape:
