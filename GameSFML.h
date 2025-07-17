@@ -41,7 +41,8 @@ private:
     void renderScoreTunnels(); 
     void renderScoreMode();
     void renderLifeFood(); 
-    void renderTracks();  
+    void renderTracks();
+    void renderEnergyMode();
 
     void processEvents();
     void openGameOverDialog();
@@ -52,6 +53,7 @@ private:
     void updatePortalMode();
     void updateScoreMode();
     void updateLifeFood(float dt); 
+    void updateEnergyMode();
 
     void generateFood(); 
     void generateLifeFood();      
@@ -60,7 +62,10 @@ private:
     void generateScoreTunnels();
     void generateObstacles(); 
     void generateScoreObstacles(); 
-
+    void generateTracks();               
+    void feedTracks();                  
+    
+    void playSfx(const sf::SoundBuffer& buf);
     bool scoreFoodAt(int x, int y) const;  //Check whether the grid is occupied.
     static bool pointInPolygon(float px,float py, const std::vector<sf::Vector2f>& poly); //Auxiliary polygon functions.
     
@@ -166,9 +171,9 @@ private:
     
     //Pause menu button
     sf::RectangleShape mHomeBtn;
-    sf::Text           mHomeTxt;
+    sf::Text mHomeTxt;
     sf::RectangleShape mPauseQuitBtn;
-    sf::Text           mPauseQuitTxt;
+    sf::Text mPauseQuitTxt;
     bool mOverlayHoverHome   = false;
     bool mOverlayHoverQuit   = false;   
 
@@ -177,78 +182,54 @@ private:
 
     //Life Food
     SnakeBody mLifeFood;          
-    bool mHasLifeFood   = false;
-    float mLifeElapsed   = 0.f;
+    bool mHasLifeFood = false;
+    float mLifeElapsed = 0.f;
 
-    // ─── SFX buffers ───────────────────────────────────────────
+    //SFX buffers 
     sf::SoundBuffer mBufTurn, mBufEat, mBufEatSpec,
                 mBufLife, mBufPort, mBufTunnel,
                 mBufLoseHP, mBufDeath;
-
-    // 动态保存**正在播放**的声音对象
     std::vector<sf::Sound> mSounds;
 
-    // Helper：播放并自动管理声道
-    void playSfx(const sf::SoundBuffer& buf);
-
-    /* ─── 能量轨道 ───────────────────────────── */
+    //EnergyTrack
     struct EnergyTrack {
-        std::vector<SnakeBody> cells;   // 顺序路径
-        std::size_t progress = 0;       // 已经通过的格数
-        bool reverse = false;      // 记录是正向（0→end）还是反向（end→0）
+        std::vector<SnakeBody> cells;   
+        std::size_t progress = 0;       
+        bool reverse = false;     
     };
     static constexpr int kTrackBonus = 6;
+    std::array<EnergyTrack,2> mTracks;  
 
-    std::array<EnergyTrack,2> mTracks;   // 始终两条
-    void generateTracks();               // 生成 / 补全
-    void feedTracks();                   // 每帧调用
-                  // 绘制
-    void updateEnergyMode();
-    void renderEnergyMode();
-
-    // 普通食物
+    //icon
     sf::Texture mTexFoodNormal;
     sf::Sprite  mSprFoodNormal;
-
-    // 回血食物（心形）
     sf::Texture mTexFoodLife;
     sf::Sprite  mSprFoodLife;
-
-    // 障碍物
     sf::Texture mTexObstacle;
     sf::Sprite  mSprObstacle;
-
-    // 分数模式多彩食物（假设有 4 种不同图标）
     static constexpr int kNumScoreTypes = 4;
     std::array<sf::Texture, kNumScoreTypes> mTexScoreFoods;
     std::vector<sf::Sprite>  mSprScoreFoods; 
+    sf::Texture mTexPortal;
+    sf::Sprite mSprPortal;
 
-    sf::Texture              mTexPortal;
-    sf::Sprite               mSprPortal;
-
+    //Victory
     sf::RenderWindow    mVictoryDialog;
     sf::Text            mMessage;
-
     sf::RectangleShape mVictoryResumeBtn;
     sf::Text           mVictoryResumeTxt;
-
     sf::RectangleShape mVictoryNextBtn;
     sf::Text           mVictoryNextTxt;
     sf::RectangleShape mVictoryHomeBtn;
     sf::Text           mVictoryHomeTxt;
-
     sf::RectangleShape mVictoryQuitBtn;
     sf::Text           mVictoryQuitTxt;
-
-    bool                mNextHover = false;  // ← 记录鼠标是否悬停在 Next 上
-
+    bool                mNextHover = false;  
     AppState mCurrentMode;
     AppState mOutcome = AppState::Exit;
-    
     bool mVictoryHandled1 = false;
     bool mVictoryHandled2 = false; 
     bool mVictoryHandled3 = false;
-
     sf::Music       mVictoryMusic;
     
 };
