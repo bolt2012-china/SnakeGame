@@ -87,7 +87,7 @@ private:
     SnakeBody mFood;
     int mPoints = 0;
     int mDifficulty = 0;
-    float mDelay = 0.2f;
+    float mDelay = 0.1f;
     static constexpr float MIN_DELAY = 0.04f;   // Global speed limit
 
     sf::Font mFont;
