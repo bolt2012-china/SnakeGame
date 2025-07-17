@@ -1162,7 +1162,7 @@ AppState GameSFML::runPortalMode()
 {
     mPoints         = 0;
     mDifficulty     = 0;
-    mDelay          = 0.2f;
+    mDelay          = 0.1f;
     mState          = GameState::Playing;
     mInvincibleTimer= 0.f;
     mHitEffectTimer = 0.f;
@@ -1542,7 +1542,7 @@ AppState GameSFML::runScoreMode()
 {
     mPoints         = 0;
     mDifficulty     = 0;
-    mDelay          = 0.2f;
+    mDelay          = 0.1f;
     mState          = GameState::Playing;
     mInvincibleTimer= 0.f;
     mHitEffectTimer = 0.f;
@@ -2078,7 +2078,7 @@ AppState GameSFML::runEnergyTrackMode()
    
     mPoints       = 0;
     mDifficulty   = 0;
-    mDelay        = 0.2f;          
+    mDelay        = 0.1f;          
     mState        = GameState::Playing;
     mOutcome      = AppState::StartMenu;   
     mCurrentMode = AppState::EnergyTrackMode;
