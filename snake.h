@@ -39,11 +39,11 @@ public:
     // Checking API for generating random food
     bool isPartOfSnake(int x, int y);
     void senseFood(SnakeBody food);
-    void sensePortalFood(SnakeBody portalFood);  // 感知传送食物
+    void sensePortalFood(SnakeBody portalFood); 
     bool touchFood();
-    bool touchPortalFood();                      // 检测是否碰到传送食物
-    void teleportSnake();                        // 传送蛇到随机位置
-    void teleportToPosition(int x, int y);       // 传送蛇到指定位置
+    bool touchPortalFood();                 
+    void teleportSnake();                      
+    void teleportToPosition(int x, int y);  
     // Check if the snake is dead
     bool hitWall();
     bool hitSelf();
@@ -55,24 +55,22 @@ public:
     int getLength();
     SnakeBody createNewHead();
     bool moveFoward();
-    void setSpeedMultiplier(float multiplier); // 新增速度控制方法
+    void setSpeedMultiplier(float multiplier); 
     float getSpeedMultiplier() const { return mSpeedMultiplier; }
     bool isAccelerating() const { return mSpeedMultiplier > 1.0f; }
-    void setAccelerationEffect(bool active) { /* 可添加粒子效果标记 */ }
+    void setAccelerationEffect(bool active) {  }
 
     int getHitPoints() const { return mHitPoints; }
     void decreaseHitPoints(int amount = 1);
     void resetHitPoints() { mHitPoints = mInitialHitPoints; }
     void resetToInitial();
-    void shrink(); // 蛇长度减1
+    void shrink();
 
-    void grow();   // 让蛇体立即增长一节（不移动）
+    void grow();
 
-    void increaseHitPoints(int amount = 1); //生命值增加 
+    void increaseHitPoints(int amount = 1);
     
     void rollback(int steps);
-
-
 
 private:
     const int mGameBoardWidth;
@@ -82,13 +80,13 @@ private:
     const int mInitialSnakeLength;
     Direction mDirection;
     SnakeBody mFood;
-    SnakeBody mPortalFood;                       // 传送食物
+    SnakeBody mPortalFood;              
     std::vector<SnakeBody> mSnake;
-    float mSpeedMultiplier = 1.0f; // 速度乘数
+    float mSpeedMultiplier = 1.0f; 
 
-    int mHitPoints = 1;          // 当前生命值
-    const int mInitialHitPoints = 1; // 初始生命值
-    float mHitEffectTimer; // 生命值减少时的闪烁效果计时器
+    int mHitPoints = 1;        
+    const int mInitialHitPoints = 1;
+    float mHitEffectTimer;
 };
 
 #endif
