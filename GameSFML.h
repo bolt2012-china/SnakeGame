@@ -51,8 +51,10 @@ private:
     void update();
     void updatePortalMode();
     void updateScoreMode();
+    void updateLifeFood(float dt); 
 
-    void generateFood();               
+    void generateFood(); 
+    void generateLifeFood();      
     void generatePairedFood(); 
     void generateScoreFood(); 
     void generateScoreTunnels();
@@ -141,51 +143,42 @@ private:
 
     // Score Mode Tunnel
     struct ScoreTunnel {
-        SnakeBody entrance;  // 入口位置
-        SnakeBody exit;      // 出口位置
-        sf::Color color;     // 隧道颜色
-        int bonusPoints;     // 通过隧道获得的奖励分数
-        bool isActive;       // 隧道是否激活
+        SnakeBody entrance;  
+        SnakeBody exit;     
+        sf::Color color;    
+        int bonusPoints;    
+        bool isActive;      
     };
-    std::vector<ScoreTunnel> mScoreTunnels; // 分数模式的隧道数组
+    std::vector<ScoreTunnel> mScoreTunnels;
 
-    std::vector<SnakeBody> mObstacles; // 障碍物数组
-    int mObstacleCount = 5; // 初始障碍物数量
+    std::vector<SnakeBody> mObstacles; 
+    int mObstacleCount = 5;
     bool mNewBoardActivated = false; // Flag to track if new board has been rendered
 
-    sf::Texture mBgTexture;   // 背景图
-    sf::Sprite  mBgSprite;    // 背景图
+    sf::Texture mBgTexture;  
+    sf::Sprite  mBgSprite;   
+    sf::Texture mHeadTexture;  
+    sf::Sprite  mHeadSprite;
 
-    sf::Texture mHeadTexture;  // 蛇头
-    sf::Sprite  mHeadSprite;   // 蛇头
-
-    sf::RectangleShape mPauseBtn;   // 侧边栏暂停按钮
+    sf::RectangleShape mPauseBtn; 
     sf::Text mPauseTxt;
-    bool               mPauseHover = false;
+    bool mPauseHover = false;
     
-    //暂停菜单按钮
+    //Pause menu button
     sf::RectangleShape mHomeBtn;
     sf::Text           mHomeTxt;
-
     sf::RectangleShape mPauseQuitBtn;
     sf::Text           mPauseQuitTxt;
-
     bool mOverlayHoverHome   = false;
     bool mOverlayHoverQuit   = false;   
-
-    
 
     struct FoodQuota { sf::Color color; int value; int quota; };
     static const std::array<FoodQuota,4> kFoodQuotas;
 
-    /* —— Life-Food ——————————————————————— */
-    SnakeBody mLifeFood;           // 心形位置
-    bool      mHasLifeFood   = false;
-    float     mLifeElapsed   = 0.f; // 已存在时间（秒）
-
-    void generateLifeFood();       // 随机刷一颗
-    void updateLifeFood(float dt); // 计时 & 过期 / 刷新
-            // 绘制心形
+    //Life Food
+    SnakeBody mLifeFood;          
+    bool mHasLifeFood   = false;
+    float mLifeElapsed   = 0.f;
 
     // ─── SFX buffers ───────────────────────────────────────────
     sf::SoundBuffer mBufTurn, mBufEat, mBufEatSpec,
