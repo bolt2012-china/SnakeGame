@@ -16,7 +16,6 @@ bool unlockedPoints       = false;
 
 int main()
 {
-    // 计算窗口尺寸、网格参数 
     constexpr unsigned COLS = 40, ROWS = 30, SIDE = 240;
     auto desk = sf::VideoMode::getDesktopMode();
     unsigned deskW = desk.size.x; 
@@ -29,7 +28,6 @@ int main()
         sf::VideoMode({ COLS * cell + SIDE,  ROWS * cell }),  
         "Snake");
 
-
     AppState state = AppState::StartMenu;
     AppState  nextState = AppState::StartMenu; 
 
@@ -39,7 +37,7 @@ int main()
         {
         case AppState::StartMenu: {
             StartScreen ss(window);
-            nextState = ss.run();               // 返回下一状态
+            nextState = ss.run();          
             break;
         }
         case AppState::LevelMode: {
@@ -48,17 +46,13 @@ int main()
     AppState result = game.run();
 
     if (result == AppState::EnergyTrackMode) {
-        // 1) 解锁下一关
         unlockedEnergyTrack = true;
-        // 2) 先重建窗口
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
             "Snake");
-        // 3) 切换到下一关
         nextState = AppState::EnergyTrackMode;
     }
     else if (result == AppState::LevelMode) {
-        // Resume 本关，同样要重建窗口
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
             "Snake");
@@ -82,7 +76,6 @@ case AppState::EnergyTrackMode: {
     AppState result = game.runEnergyTrackMode();
 
     if (result == AppState::PortalMode) {
-        // Next：解锁下一关并进入 PortalMode
         unlockedPortal = true;
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
@@ -90,21 +83,18 @@ case AppState::EnergyTrackMode: {
         nextState = AppState::PortalMode;
     }
     else if (result == AppState::EnergyTrackMode) {
-        // Resume：重新在 EnergyTrackMode 中继续
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
             "Snake");
         nextState = AppState::EnergyTrackMode;
     }
     else if (result == AppState::StartMenu) {
-        // Home
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
             "Snake");
         nextState = AppState::StartMenu;
     }
     else {
-        // Quit
         nextState = AppState::Exit;
     }
     break;
@@ -117,7 +107,6 @@ case AppState::PortalMode: {
     AppState result = game.runPortalMode();
 
     if (result == AppState::ScoreMode) {
-        // Next：解锁下一关并进入 ScoreMode
         unlockedPoints = true;
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
@@ -125,21 +114,18 @@ case AppState::PortalMode: {
         nextState = AppState::ScoreMode;
     }
     else if (result == AppState::PortalMode) {
-        // Resume：重新在 PortalMode 中继续
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
             "Snake");
         nextState = AppState::PortalMode;
     }
     else if (result == AppState::StartMenu) {
-        // Home
         window.create(
             sf::VideoMode({ COLS * cell + SIDE, ROWS * cell }),
             "Snake");
         nextState = AppState::StartMenu;
     }
     else {
-        // Quit
         nextState = AppState::Exit;
     }
     break;
