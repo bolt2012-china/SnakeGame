@@ -25,7 +25,7 @@ struct TextButton {
                const std::string& text,
                float yPos,
                float xCenter)
-        : label(font, text, 48)                 // (font, string, size)
+        : label(font, text, 48)             
     {
         const auto local = label.getLocalBounds();
         label.setFillColor(sf::Color::White);
@@ -44,7 +44,7 @@ struct TextButton {
         enabled = e;
         label.setFillColor(enabled
             ? sf::Color::White
-            : sf::Color(100,100,100)); // 灰色
+            : sf::Color(100,100,100)); 
     }
 };
 
@@ -56,10 +56,10 @@ public:
 private:
     sf::RenderWindow&       mWindow;
     sf::Font                mFont;
-    sf::Text                mTitle;          // 用带-font 构造
+    sf::Text                mTitle;         
     std::vector<TextButton> mButtons;
-    sf::Texture             mBgTexture;   // ← 新增
-    sf::Sprite              mBgSprite;    // ← 新增
+    sf::Texture             mBgTexture; 
+    sf::Sprite              mBgSprite;   
 
     sf::Music               mMusic;
 };
