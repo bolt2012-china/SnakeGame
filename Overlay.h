@@ -22,5 +22,5 @@ private:
     sf::RectangleShape mMask;
     sf::Font mFont;
     sf::Text mText;  
-    sf::SoundBuffermBuf;     
+    sf::Sound BuffermBuf;     
 };
