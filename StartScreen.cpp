@@ -3,22 +3,20 @@
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <stdexcept>
-#include <variant>     // std::visit
-#include <optional>    // std::optional
+#include <variant>    
+#include <optional>  
 #include <filesystem> 
 
 using namespace gui;
 
-//  构  造
 StartScreen::StartScreen(sf::RenderWindow& win)
 : mWindow(win)
-, mBgTexture{}                 // 先默认构造纹理
-, mBgSprite(mBgTexture)        // ★ Sprite 必须马上绑定纹理
+, mBgTexture{}               
+, mBgSprite(mBgTexture)       
 , mFont()
-, mTitle(mFont, "", 72)            // 先用空串占位
+, mTitle(mFont, "", 72)      
 , mMusic()
 {
-    // 载入字体（SFML-3：openFromFile）
     if (!mFont.openFromFile("assets/fonts/Baloo2.ttf"))
         throw std::runtime_error("Cannot open C:/Windows/Fonts/arial.ttf");
 
@@ -28,11 +26,8 @@ StartScreen::StartScreen(sf::RenderWindow& win)
     if (!mMusic.openFromFile("assets/music/wel.ogg"))
         throw std::runtime_error("Cannot open assets/music/wel.ogg");
     
-    
-    
-    mMusic.setLooping(true);       // 循环播放
+    mMusic.setLooping(true);       
     mBgSprite.setTexture(mBgTexture, /*resetRect=*/true); 
-    //等比缩放到窗口大小
     sf::Vector2u winSize = mWindow.getSize();
     sf::Vector2u texSize = mBgTexture.getSize();
     mBgSprite.setScale(sf::Vector2f{
@@ -41,8 +36,6 @@ StartScreen::StartScreen(sf::RenderWindow& win)
 
     const float cx = mWindow.getSize().x * 0.85f; 
 
-
-    //三个按钮
     mButtons.emplace_back(mFont, "Level Mode", 320.f, cx);
     mButtons.emplace_back(mFont, "Energy Track", 460.f, cx);
     mButtons.emplace_back(mFont, "Portal Mode", 600.f, cx);
@@ -55,17 +48,13 @@ StartScreen::StartScreen(sf::RenderWindow& win)
 
 }
 
-
-// 运行：渲染并等待用户选择
 AppState StartScreen::run()
 {
     mMusic.play();      
     bool      running    = true;
-    AppState  nextState  = AppState::StartMenu;   // 默认回菜单 / 退出由窗口控制
-
+    AppState  nextState  = AppState::StartMenu;
     while (mWindow.isOpen() && running)
     {
-        // 事件处理
         while (auto evt = mWindow.pollEvent()) {
             if (evt->is<sf::Event::Closed>()) {
                 mWindow.close();
@@ -87,9 +76,9 @@ AppState StartScreen::run()
                 }
             }
         }
-        mWindow.clear();                 // 颜色随意，反正被背景盖住
-        mWindow.draw(mBgSprite);         // ★ 先画背景
-        mWindow.draw(mTitle);            // ★ 再画前景
+        mWindow.clear();               
+        mWindow.draw(mBgSprite);       
+        mWindow.draw(mTitle);         
         for (const auto& b : mButtons) mWindow.draw(b.label);
         mWindow.display();
     }
