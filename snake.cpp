@@ -126,7 +126,7 @@ bool Snake::touchPortalFood()
     return !mSnake.empty() && (mSnake[0] == mPortalFood);
 }
 
-void Snake::grow() {                         // 方便 Portal 二连吃
+void Snake::grow() {
     if (!mSnake.empty())
         mSnake.push_back(mSnake.back());
 }
@@ -134,8 +134,7 @@ void Snake::grow() {                         // 方便 Portal 二连吃
 void Snake::teleportSnake()
 {
     if (mSnake.empty()) return;
-    
-    // 找到一个安全的传送位置（不在蛇身上）
+
     int attempts = 0;
     int newX, newY;
     do {
@@ -143,8 +142,7 @@ void Snake::teleportSnake()
         newY = std::rand() % mGameBoardHeight;
         attempts++;
     } while (isPartOfSnake(newX, newY) && attempts < 100);
-    
-    // 传送蛇头到新位置
+
     if (attempts < 100) {
         mSnake[0] = SnakeBody(newX, newY);
     }
@@ -226,7 +224,7 @@ SnakeBody Snake::createNewHead()
  */
 bool Snake::moveFoward()
 {
-    if (mSnake.empty()) return false; // 判空保护
+    if (mSnake.empty()) return false;
     SnakeBody newHead = this->createNewHead();
     this->mSnake.insert(this->mSnake.begin(), newHead);  // Add new head
 
@@ -269,10 +267,7 @@ void Snake::setSpeedMultiplier(float multiplier) {
 void Snake::decreaseHitPoints(int amount) {
     mHitPoints -= amount;
     if (mHitPoints < 0) mHitPoints = 0;
-    
-    // 生命值减少时的视觉反馈
     if (mHitPoints > 0) {
-        // 闪烁效果（在渲染中实现）
         mHitEffectTimer = 0.5f; // 0.5秒闪烁效果
     }
 }
@@ -280,22 +275,18 @@ void Snake::decreaseHitPoints(int amount) {
 void Snake::resetToInitial() {
     initializeSnake();
     mDirection = Direction::Up;
-    // 保留生命值，只重置位置
 }
 
 void Snake::shrink() {
     if (mSnake.size() > 1) {
-        mSnake.pop_back(); // 移除尾部
+        mSnake.pop_back(); 
     }
 }
 
 void Snake::teleportToPosition(int x, int y)
 {
     if (mSnake.empty()) return;
-    
-    // 确保目标位置在游戏区域内
     if (x >= 0 && x < mGameBoardWidth && y >= 0 && y < mGameBoardHeight) {
-        // 传送蛇头到指定位置
         mSnake[0] = SnakeBody(x, y);
     }
 }
@@ -308,16 +299,12 @@ void Snake::increaseHitPoints(int amount) {
 void Snake::rollback(int steps) {
     for (int s = 0; s < steps; ++s) {
         if (mSnake.size() <= 1) break;
-        // 取出当前尾部
         SnakeBody tail = mSnake.back();
         mSnake.pop_back();
-        // 插到最前面，作为新的头部
         mSnake.insert(mSnake.begin(), tail);
     }
 }
 
-
-// ── snake.cpp (新增实现) ──
 void Snake::reverseDirection()
 {
     switch (mDirection) {
